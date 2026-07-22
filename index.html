@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#161C22">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Sandal Transition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#161C22; --surface:#1E262E; --surfaceHi:#263039; --line:#33404B;
+    --text:#E2E8EC; --muted:#7A8894; --dim:#4E5A65;
+    --sandal:#E3A552; --brooks:#6E93B0; --strength:#9C8DB4; --done:#86A98C;
+    --display:'Barlow Condensed',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --sans:'IBM Plex Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);
+       padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:600px;margin:0 auto;padding:24px 16px 64px}
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  button:focus-visible{outline:2px solid var(--sandal);outline-offset:2px}
+  h1{font-family:var(--display);font-size:30px;font-weight:700;letter-spacing:.02em;line-height:1}
+  .sub{color:var(--muted);font-size:12px;margin-top:4px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:8px}
+  .ridge{padding:16px;margin:20px 0}
+  .eyebrow{color:var(--muted);font-size:10px;letter-spacing:.14em;margin-bottom:12px}
+  .bars{display:flex;align-items:flex-end;gap:6px;height:56px}
+  .bars>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+  .bars i{display:block;border-radius:2px;background:var(--surfaceHi);transition:background .22s}
+  .bars i.on{background:var(--sandal)}
+  .bars i.cur{background:transparent;border:1.5px solid var(--sandal)}
+  .nums{display:flex;gap:6px;margin-top:8px}
+  .nums span{flex:1;text-align:center;font-family:var(--mono);font-size:10px;color:var(--dim)}
+  .nums span.cur{color:var(--sandal)}
+  .weeks{display:flex;flex-direction:column;gap:8px}
+  .wk{overflow:hidden}
+  .wkhead{width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;text-align:left}
+  .wkname{font-family:var(--display);font-size:22px;font-weight:600;line-height:1}
+  .wkname.cur{color:var(--sandal)}
+  .round{font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:12px}
+  .count{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .caret{color:var(--dim);font-size:11px;margin-left:8px}
+  .runs{border-top:1px solid var(--line)}
+  .run{width:100%;display:flex;gap:12px;padding:12px 16px;text-align:left;align-items:flex-start;border-bottom:1px solid var(--line)}
+  .run:last-child{border-bottom:none}
+  .run.done{opacity:.5}
+  .box{flex:0 0 auto;width:20px;height:20px;margin-top:2px;border-radius:5px;border:1.5px solid var(--dim);
+       display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--bg)}
+  .run.done .box{background:var(--done);border-color:var(--done)}
+  .runname{font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.04em;margin-bottom:6px}
+  .run.done .runname{text-decoration:line-through}
+  .line{display:flex;gap:8px;align-items:baseline;margin-bottom:4px}
+  .tag{font-family:var(--mono);font-size:9px;letter-spacing:.1em;width:52px;flex:0 0 52px}
+  .val{font-family:var(--mono);font-size:12px}
+  .wkt{font-size:11px;color:var(--muted);line-height:1.4}
+  .wkt em{font-style:normal;color:var(--dim);display:block}
+  .gate{padding:12px 16px;border-top:1px solid var(--line);background:var(--surfaceHi)}
+  .gate p{font-size:12px;margin-bottom:8px;line-height:1.5}
+  .row{display:flex;gap:8px}
+  .pick{flex:1;padding:8px;border-radius:4px;background:var(--surface);border:1px solid var(--line);font-size:12px}
+  .solid{padding:8px 12px;border-radius:4px;background:var(--sandal);color:var(--bg);font-size:12px;font-weight:600}
+  .ghost{padding:8px 12px;border-radius:4px;border:1px solid var(--line);color:var(--muted);font-size:12px}
+  .note{padding:16px;margin-top:8px}
+  .note p{font-size:12px;line-height:1.6;margin-top:8px}
+  .note p:first-of-type{margin-top:0}
+  .foot{text-align:center;margin-top:24px}
+  .foot button{color:var(--dim);font-size:11px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="display:flex;align-items:baseline;justify-content:space-between">
+    <div>
+      <h1>SANDAL TRANSITION</h1>
+      <div class="sub">Sandal minutes per week. Everything else serves that.</div>
+    </div>
+    <div id="saved" style="color:var(--done);font-size:10px;font-family:var(--mono);opacity:0;transition:opacity .2s">saved</div>
+  </div>
+
+  <div class="card ridge">
+    <div class="eyebrow">WEEKLY SANDAL MINUTES</div>
+    <div class="bars" id="bars"></div>
+    <div class="nums" id="nums"></div>
+  </div>
+
+  <div class="weeks" id="weeks"></div>
+
+  <div class="card note">
+    <div class="eyebrow">EVERY DAY, UNSCHEDULED</div>
+    <p>Short foot holds · toe spreading · single-leg balance — barefoot, folded into standing time. Not a session.</p>
+    <p style="color:var(--muted)">Walking in sandals is unlimited and doesn't count as load.</p>
+    <p style="color:var(--muted)">Heel raises are bodyweight through week 2, loaded single-leg from week 3.</p>
+  </div>
+
+  <div class="card note">
+    <div class="eyebrow">SESSION ORDER</div>
+    <p style="font-family:var(--mono);font-size:11px;line-height:1.8">walk 5 (sandals) → sandal block → switch → brooks block → walk 5 → strength</p>
+  </div>
+
+  <div class="foot"><button id="reset">Clear all progress</button></div>
+</div>
+
+<script>
+const WORKOUTS={A:"Pull-up · Bridge · Handstand",B:"Pushup · Squat · Leg Raise"};
+const ACC="Heel raises · Side plank · Copenhagen";
+const S="3 / 90s / 3", L="3 / 90s / 4", X="4 / 90s / 4";
+const WEEKS=[
+ {n:1,min:18,runs:[[S,S,"A"],[S,S,null],[S,S,"B"]]},
+ {n:2,min:18,runs:[[S,S,"A"],[S,S,null],[S,S,"B"]]},
+ {n:3,min:19,runs:[[L,S,"A"],[S,S,null],[S,S,"B"]]},
+ {n:4,min:20,runs:[[L,S,"A"],[S,S,null],[L,S,"B"]]},
+ {n:5,min:21,runs:[[L,S,"A"],[L,S,null],[L,S,"B"]]},
+ {n:6,min:22,runs:[[X,S,"A"],[L,S,null],[L,S,"B"]]},
+ {n:7,min:23,runs:[[X,S,"A"],[L,S,null],[X,S,"B"]]},
+ {n:8,min:24,runs:[[X,L,"A"],[X,L,null],[X,L,"B"]]}
+];
+
+const KEY="sandal-transition-tracker";
+let st={done:{},feel:{},repeats:{}};
+let openWeek=null;
+
+let storageOK=true;
+function load(){
+  try{const r=localStorage.getItem(KEY); if(r) st=Object.assign({done:{},feel:{},repeats:{}},JSON.parse(r));}
+  catch(e){ storageOK=false; }
+}
+function save(){
+  const s=document.getElementById("saved");
+  try{
+    localStorage.setItem(KEY,JSON.stringify(st));
+    s.textContent="saved"; s.style.color="var(--done)";
+    s.style.opacity=1; setTimeout(()=>s.style.opacity=0,1200);
+  }catch(e){
+    storageOK=false;
+    s.textContent="session only"; s.style.color="var(--sandal)";
+    s.style.opacity=1;
+  }
+}
+
+const wkDone=w=>w.runs.every((_,i)=>st.done[w.n+"-"+i]);
+const wkCount=w=>w.runs.filter((_,i)=>st.done[w.n+"-"+i]).length;
+const current=()=>WEEKS.find(w=>!wkDone(w))||WEEKS[7];
+
+function render(){
+  const cur=current();
+
+  document.getElementById("bars").innerHTML=WEEKS.map(w=>{
+    const pct=((w.min-16)/9)*100;
+    const cls=wkDone(w)?"on":(w.n===cur.n?"cur":"");
+    return `<div><i class="${cls}" style="height:${pct}%"></i></div>`;
+  }).join("");
+
+  document.getElementById("nums").innerHTML=WEEKS.map(w=>
+    `<span class="${w.n===cur.n?"cur":""}">${w.min}</span>`).join("");
+
+  document.getElementById("weeks").innerHTML=WEEKS.map(w=>{
+    const isCur=w.n===cur.n;
+    const exp = openWeek===w.n || (openWeek===null && isCur);
+    const done=wkDone(w), rounds=st.repeats[w.n]||0, feel=st.feel[w.n];
+    const faded=(!isCur&&!done&&!exp)?"opacity:.55":"";
+
+    let body="";
+    if(exp){
+      body=`<div class="runs">`+w.runs.map((r,i)=>{
+        const d=!!st.done[w.n+"-"+i];
+        return `<button class="run ${d?"done":""}" data-w="${w.n}" data-i="${i}" aria-pressed="${d}">
+          <span class="box">${d?"✓":""}</span>
+          <span style="flex:1;min-width:0">
+            <span class="runname" style="display:block">RUN ${i+1}</span>
+            <span class="line"><span class="tag" style="color:var(--sandal)">SANDALS</span><span class="val">${r[0]}</span></span>
+            <span class="line"><span class="tag" style="color:var(--brooks)">BROOKS</span><span class="val">${r[1]}</span></span>
+            ${r[2]?`<span class="line" style="margin-top:4px"><span class="tag" style="color:var(--strength)">WKT ${r[2]}</span><span class="wkt">${WORKOUTS[r[2]]}<em>${ACC}</em></span></span>`:""}
+          </span></button>`;
+      }).join("")+`</div>`;
+
+      if(done){
+        if(!feel){
+          body+=`<div class="gate"><p>How did this week compare to the last?</p><div class="row">
+            ${["Better","Same","Worse"].map(f=>`<button class="pick" data-feel="${w.n}" data-v="${f}">${f}</button>`).join("")}
+          </div></div>`;
+        } else if(feel==="Better"){
+          body+=`<div class="gate"><p style="color:var(--done);margin:0">Clear improvement. Move on to week ${Math.min(w.n+1,8)}.</p></div>`;
+        } else {
+          body+=`<div class="gate"><p style="color:var(--sandal)">Not clearly better — repeat this week before advancing. Repeating costs nothing.</p>
+            <div class="row"><button class="solid" data-repeat="${w.n}">Repeat week ${w.n}</button>
+            <button class="ghost" data-feel="${w.n}" data-v="Better">Advance anyway</button></div></div>`;
+        }
+      }
+    }
+
+    return `<div class="card wk" style="${faded};${isCur?"":"border-color:transparent"}">
+      <button class="wkhead" data-open="${w.n}" aria-expanded="${exp}">
+        <span style="display:flex;align-items:baseline">
+          <span class="wkname ${isCur?"cur":""}">WEEK ${w.n}</span>
+          ${rounds?`<span class="round">round ${rounds+1}</span>`:""}
+        </span>
+        <span style="display:flex;align-items:center">
+          <span class="count">${wkCount(w)}/3</span><span class="caret">${exp?"▾":"▸"}</span>
+        </span>
+      </button>${body}</div>`;
+  }).join("");
+}
+
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-w],[data-open],[data-feel],[data-repeat]");
+  if(!t) return;
+  if(t.dataset.w!==undefined && t.dataset.i!==undefined){
+    const k=t.dataset.w+"-"+t.dataset.i;
+    if(st.done[k]) delete st.done[k]; else st.done[k]=true;
+  } else if(t.dataset.open){
+    const n=+t.dataset.open;
+    const exp = openWeek===n || (openWeek===null && n===current().n);
+    openWeek = exp ? -1 : n;
+    render(); return;
+  } else if(t.dataset.feel){
+    st.feel[t.dataset.feel]=t.dataset.v;
+  } else if(t.dataset.repeat){
+    const n=+t.dataset.repeat, w=WEEKS[n-1];
+    w.runs.forEach((_,i)=>delete st.done[n+"-"+i]);
+    delete st.feel[n];
+    st.repeats[n]=(st.repeats[n]||0)+1;
+  }
+  save(); render();
+});
+
+document.getElementById("reset").addEventListener("click",()=>{
+  if(confirm("Erase all progress?")){ st={done:{},feel:{},repeats:{}}; save(); render(); }
+});
+
+load(); render();
+</script>
+</body>
+</html>
