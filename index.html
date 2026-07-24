@@ -61,7 +61,16 @@
   .val{font-family:var(--mono);font-size:12px}
   .wkt{font-size:11px;color:var(--muted);line-height:1.4}
   .wkt em{font-style:normal;color:var(--dim);display:block}
-  .strength{padding:2px 16px 12px 48px;border-bottom:1px solid var(--line)}
+  .workout{border-bottom:1px solid var(--line)}
+  .workout.done{opacity:.5}
+  .workoutHead{display:flex;align-items:center;gap:10px;padding:10px 16px 8px 48px}
+  .workoutCheck{flex:0 0 auto}
+  .workoutCheck .box{margin-top:0}
+  .workout.done .box{background:var(--done);border-color:var(--done)}
+  .workoutTitle{flex:1 1 auto;min-width:0;font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.04em;color:var(--strength)}
+  .workout.done .workoutTitle{text-decoration:line-through}
+  .workoutToggle{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:6px;padding:4px;color:var(--dim);font-size:11px;text-align:left}
+  .strength{padding:0 16px 12px 78px}
   .strengthRow{display:flex;align-items:center;gap:8px;margin-top:8px;min-width:0}
   .exercise{flex:1 1 auto;min-width:76px;color:var(--text);font-size:12px;line-height:1.25;overflow-wrap:anywhere}
   .sets{display:flex;gap:5px;flex:0 0 auto}
@@ -132,12 +141,12 @@ const WEEKS=[
 ];
 
 const KEY="sandal-transition-tracker";
-let st={done:{},feel:{},repeats:{},sets:{}};
+let st={done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{}};
 let openWeek=null;
 
 let storageOK=true;
 function load(){
-  try{const r=localStorage.getItem(KEY); if(r) st=Object.assign({done:{},feel:{},repeats:{},sets:{}},JSON.parse(r));}
+  try{const r=localStorage.getItem(KEY); if(r) st=Object.assign({done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{}},JSON.parse(r));}
   catch(e){ storageOK=false; }
 }
 function save(){
@@ -158,6 +167,7 @@ const wkCount=w=>w.runs.filter((_,i)=>st.done[w.n+"-"+i]).length;
 const current=()=>WEEKS.find(w=>!wkDone(w))||WEEKS[7];
 const parts=s=>s.split(/\s+[^A-Za-z0-9]+\s+/);
 const strengthRowsFor=r=>r[2]?[...parts(WORKOUTS[r[2]]),...parts(ACC)]:[];
+const workoutKey=(w,i)=>w+"-"+i;
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 function render(){
@@ -183,23 +193,33 @@ function render(){
       body=`<div class="runs">`+w.runs.map((r,i)=>{
         const d=!!st.done[w.n+"-"+i];
         const exercises=strengthRowsFor(r);
-        const strength=exercises.length?`<div class="strength">`+exercises.map((ex,ei)=>
-          `<div class="strengthRow">
-            <span class="exercise">${ex}</span>
-            <span class="sets">
-              ${[0,1,2].map(si=>{
-                const k=`${w.n}-${i}-${ei}-${si}`;
-                return `<input class="setInput" data-set="${k}" value="${esc(st.sets[k]||"")}" placeholder="${si+1}" inputmode="text" autocomplete="off" aria-label="Week ${w.n} run ${i+1} ${ex} set ${si+1}">`;
-              }).join("")}
-            </span>
-          </div>`).join("")+`</div>`:"";
+        const wk=workoutKey(w.n,i), wd=!!st.workouts[wk], wo=st.workoutOpen[wk]!==undefined?st.workoutOpen[wk]:!wd;
+        const strength=exercises.length?`<div class="workout ${wd?"done":""}">
+          <div class="workoutHead">
+            <button class="workoutCheck" data-workout="${wk}" aria-pressed="${wd}" aria-label="Mark workout ${r[2]} ${wd?"not done":"done"}">
+              <span class="box">${wd?"✓":""}</span>
+            </button>
+            <button class="workoutToggle" data-workout-open="${wk}" aria-expanded="${wo}">
+              <span class="workoutTitle">WORKOUT ${r[2]}</span><span class="caret">${wo?"▾":"▸"}</span>
+            </button>
+          </div>
+          ${wo?`<div class="strength">`+exercises.map((ex,ei)=>
+            `<div class="strengthRow">
+              <span class="exercise">${ex}</span>
+              <span class="sets">
+                ${[0,1,2].map(si=>{
+                  const k=`${w.n}-${i}-${ei}-${si}`;
+                  return `<input class="setInput" data-set="${k}" value="${esc(st.sets[k]||"")}" placeholder="${si+1}" inputmode="text" autocomplete="off" aria-label="Week ${w.n} run ${i+1} ${ex} set ${si+1}">`;
+                }).join("")}
+              </span>
+            </div>`).join("")+`</div>`:""}
+        </div>`:"";
         return `<div class="day"><button class="run ${d?"done":""}" data-w="${w.n}" data-i="${i}" aria-pressed="${d}">
           <span class="box">${d?"✓":""}</span>
           <span style="flex:1;min-width:0">
             <span class="runname" style="display:block">RUN ${i+1}</span>
             <span class="line"><span class="tag" style="color:var(--sandal)">SANDALS</span><span class="val">${r[0]}</span></span>
             <span class="line"><span class="tag" style="color:var(--brooks)">BROOKS</span><span class="val">${r[1]}</span></span>
-            ${r[2]?`<span class="line" style="margin-top:4px"><span class="tag" style="color:var(--strength)">WKT ${r[2]}</span><span class="wkt">${WORKOUTS[r[2]]}<em>${ACC}</em></span></span>`:""}
           </span></button>${strength}</div>`;
       }).join("")+`</div>`;
 
@@ -232,11 +252,24 @@ function render(){
 }
 
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-w],[data-open],[data-feel],[data-repeat]");
+  const t=e.target.closest("[data-w],[data-open],[data-feel],[data-repeat],[data-workout],[data-workout-open]");
   if(!t) return;
   if(t.dataset.w!==undefined && t.dataset.i!==undefined){
     const k=t.dataset.w+"-"+t.dataset.i;
     if(st.done[k]) delete st.done[k]; else st.done[k]=true;
+  } else if(t.dataset.workout){
+    const k=t.dataset.workout;
+    if(st.workouts[k]){
+      delete st.workouts[k];
+      st.workoutOpen[k]=true;
+    } else {
+      st.workouts[k]=true;
+      st.workoutOpen[k]=false;
+    }
+  } else if(t.dataset.workoutOpen){
+    const k=t.dataset.workoutOpen;
+    const open=st.workoutOpen[k]!==undefined?st.workoutOpen[k]:!st.workouts[k];
+    st.workoutOpen[k]=!open;
   } else if(t.dataset.open){
     const n=+t.dataset.open;
     const exp = openWeek===n || (openWeek===null && n===current().n);
@@ -248,6 +281,8 @@ document.addEventListener("click",e=>{
     const n=+t.dataset.repeat, w=WEEKS[n-1];
     w.runs.forEach((_,i)=>delete st.done[n+"-"+i]);
     Object.keys(st.sets).forEach(k=>{ if(k.startsWith(n+"-")) delete st.sets[k]; });
+    Object.keys(st.workouts).forEach(k=>{ if(k.startsWith(n+"-")) delete st.workouts[k]; });
+    Object.keys(st.workoutOpen).forEach(k=>{ if(k.startsWith(n+"-")) delete st.workoutOpen[k]; });
     delete st.feel[n];
     st.repeats[n]=(st.repeats[n]||0)+1;
   }
@@ -262,7 +297,7 @@ document.addEventListener("input",e=>{
 });
 
 document.getElementById("reset").addEventListener("click",()=>{
-  if(confirm("Erase all progress?")){ st={done:{},feel:{},repeats:{},sets:{}}; save(); render(); }
+  if(confirm("Erase all progress?")){ st={done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{}}; save(); render(); }
 });
 
 load(); render();
