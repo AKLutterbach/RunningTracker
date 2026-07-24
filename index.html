@@ -56,11 +56,11 @@
   .run.done .box{background:var(--done);border-color:var(--done)}
   .runname{font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.04em;margin-bottom:6px}
   .run.done .runname{text-decoration:line-through}
-  .feelLog{padding:0 16px 12px 48px;border-bottom:1px solid var(--line)}
-  .feelLog.workoutLog{padding:0 16px 10px 78px;border-bottom:none}
+  .feelLog{padding:0 16px 12px 70px;border-bottom:1px solid var(--line)}
+  .feelLog.workoutLog{padding:0 16px 10px 70px;border-bottom:none}
   .feelBtns{display:flex;gap:6px;margin-top:8px}
-  .feelBtn{flex:1;min-width:0;padding:7px 4px;border:1px solid var(--line);border-radius:4px;color:var(--muted);font-size:11px;font-weight:600}
-  .feelBtn.on{background:var(--sandal);border-color:var(--sandal);color:var(--bg)}
+  .feelBtn{flex:0 0 66px;min-width:66px;padding:7px 6px;border:1px solid var(--line);border-radius:4px;color:var(--muted);font-size:11px;font-weight:600}
+  .feelBtn.on{background:rgba(227,165,82,.15);border-color:var(--sandal);color:var(--sandal)}
   .feelNote{width:100%;height:30px;margin-top:7px;padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surfaceHi);
        color:var(--text);font:500 12px var(--sans)}
   .feelNote:focus{outline:1.5px solid var(--sandal);border-color:var(--sandal)}
@@ -79,7 +79,7 @@
   .workoutTitle{flex:1 1 auto;min-width:0;font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.04em;color:var(--strength)}
   .workout.done .workoutTitle{text-decoration:line-through}
   .workoutToggle{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:6px;padding:4px;color:var(--dim);font-size:11px;text-align:left}
-  .strength{padding:0 16px 12px 78px}
+  .strength{padding:0 16px 12px 70px}
   .strengthRow{display:flex;align-items:center;gap:8px;margin-top:8px;min-width:0}
   .exercise{flex:1 1 auto;min-width:76px;color:var(--text);font-size:12px;line-height:1.25;overflow-wrap:anywhere}
   .sets{display:flex;gap:5px;flex:0 0 auto}
@@ -187,7 +187,7 @@ const feelLog=(type,k,selected,note,extraClass="")=>`<div class="feelLog ${extra
   <div class="feelBtns">
     ${FEELS.map(([v,title])=>`<button class="feelBtn ${selected===v?"on":""}" data-log-type="${type}" data-log-key="${k}" data-log-value="${v}" title="${title}" aria-pressed="${selected===v}">${v}</button>`).join("")}
   </div>
-  <input class="feelNote" data-note-type="${type}" data-note-key="${k}" value="${esc(note||"")}" placeholder="e.g. left arch tender, glute med gone by min 12" autocomplete="off">
+  <input class="feelNote" data-note-type="${type}" data-note-key="${k}" value="${esc(note||"")}" placeholder="brief notes on the run/workout" autocomplete="off">
 </div>`;
 
 function render(){
