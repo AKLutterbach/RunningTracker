@@ -56,6 +56,15 @@
   .run.done .box{background:var(--done);border-color:var(--done)}
   .runname{font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.04em;margin-bottom:6px}
   .run.done .runname{text-decoration:line-through}
+  .feelLog{padding:0 16px 12px 48px;border-bottom:1px solid var(--line)}
+  .feelLog.workoutLog{padding:0 16px 10px 78px;border-bottom:none}
+  .feelBtns{display:flex;gap:6px;margin-top:8px}
+  .feelBtn{flex:1;min-width:0;padding:7px 4px;border:1px solid var(--line);border-radius:4px;color:var(--muted);font-size:11px;font-weight:600}
+  .feelBtn.on{background:var(--sandal);border-color:var(--sandal);color:var(--bg)}
+  .feelNote{width:100%;height:30px;margin-top:7px;padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surfaceHi);
+       color:var(--text);font:500 12px var(--sans)}
+  .feelNote:focus{outline:1.5px solid var(--sandal);border-color:var(--sandal)}
+  .feelNote::placeholder{color:var(--dim)}
   .line{display:flex;gap:8px;align-items:baseline;margin-bottom:4px}
   .tag{font-family:var(--mono);font-size:9px;letter-spacing:.1em;width:52px;flex:0 0 52px}
   .val{font-family:var(--mono);font-size:12px}
@@ -141,12 +150,12 @@ const WEEKS=[
 ];
 
 const KEY="sandal-transition-tracker";
-let st={done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{}};
+let st={done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{}};
 let openWeek=null;
 
 let storageOK=true;
 function load(){
-  try{const r=localStorage.getItem(KEY); if(r) st=Object.assign({done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{}},JSON.parse(r));}
+  try{const r=localStorage.getItem(KEY); if(r) st=Object.assign({done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{}},JSON.parse(r));}
   catch(e){ storageOK=false; }
 }
 function save(){
@@ -169,6 +178,17 @@ const parts=s=>s.split(/\s+[^A-Za-z0-9]+\s+/);
 const strengthRowsFor=r=>r[2]?[...parts(WORKOUTS[r[2]]),...parts(ACC)]:[];
 const workoutKey=(w,i)=>w+"-"+i;
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const FEELS=[
+  ["Smooth","form held, nothing notable"],
+  ["OK","some fatigue or mild soreness, form degraded late"],
+  ["Rough","pain, form broke down, or anything localized"]
+];
+const feelLog=(type,k,selected,note,extraClass="")=>`<div class="feelLog ${extraClass}">
+  <div class="feelBtns">
+    ${FEELS.map(([v,title])=>`<button class="feelBtn ${selected===v?"on":""}" data-log-type="${type}" data-log-key="${k}" data-log-value="${v}" title="${title}" aria-pressed="${selected===v}">${v}</button>`).join("")}
+  </div>
+  <input class="feelNote" data-note-type="${type}" data-note-key="${k}" value="${esc(note||"")}" placeholder="e.g. left arch tender, glute med gone by min 12" autocomplete="off">
+</div>`;
 
 function render(){
   const cur=current();
@@ -192,6 +212,7 @@ function render(){
     if(exp){
       body=`<div class="runs">`+w.runs.map((r,i)=>{
         const d=!!st.done[w.n+"-"+i];
+        const rk=w.n+"-"+i;
         const exercises=strengthRowsFor(r);
         const wk=workoutKey(w.n,i), wd=!!st.workouts[wk], wo=st.workoutOpen[wk]!==undefined?st.workoutOpen[wk]:!wd;
         const strength=exercises.length?`<div class="workout ${wd?"done":""}">
@@ -203,6 +224,7 @@ function render(){
               <span class="workoutTitle">WORKOUT ${r[2]}</span><span class="caret">${wo?"▾":"▸"}</span>
             </button>
           </div>
+          ${feelLog("workout",wk,st.workoutFeels[wk],st.workoutNotes[wk],"workoutLog")}
           ${wo?`<div class="strength">`+exercises.map((ex,ei)=>
             `<div class="strengthRow">
               <span class="exercise">${ex}</span>
@@ -220,7 +242,7 @@ function render(){
             <span class="runname" style="display:block">RUN ${i+1}</span>
             <span class="line"><span class="tag" style="color:var(--sandal)">SANDALS</span><span class="val">${r[0]}</span></span>
             <span class="line"><span class="tag" style="color:var(--brooks)">BROOKS</span><span class="val">${r[1]}</span></span>
-          </span></button>${strength}</div>`;
+          </span></button>${feelLog("run",rk,st.runFeels[rk],st.runNotes[rk])}${strength}</div>`;
       }).join("")+`</div>`;
 
       if(done){
@@ -252,11 +274,15 @@ function render(){
 }
 
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-w],[data-open],[data-feel],[data-repeat],[data-workout],[data-workout-open]");
+  const t=e.target.closest("[data-w],[data-open],[data-feel],[data-repeat],[data-workout],[data-workout-open],[data-log-type]");
   if(!t) return;
   if(t.dataset.w!==undefined && t.dataset.i!==undefined){
     const k=t.dataset.w+"-"+t.dataset.i;
     if(st.done[k]) delete st.done[k]; else st.done[k]=true;
+  } else if(t.dataset.logType){
+    const bucket=t.dataset.logType==="run"?st.runFeels:st.workoutFeels;
+    const k=t.dataset.logKey, v=t.dataset.logValue;
+    if(bucket[k]===v) delete bucket[k]; else bucket[k]=v;
   } else if(t.dataset.workout){
     const k=t.dataset.workout;
     if(st.workouts[k]){
@@ -283,6 +309,10 @@ document.addEventListener("click",e=>{
     Object.keys(st.sets).forEach(k=>{ if(k.startsWith(n+"-")) delete st.sets[k]; });
     Object.keys(st.workouts).forEach(k=>{ if(k.startsWith(n+"-")) delete st.workouts[k]; });
     Object.keys(st.workoutOpen).forEach(k=>{ if(k.startsWith(n+"-")) delete st.workoutOpen[k]; });
+    Object.keys(st.runFeels).forEach(k=>{ if(k.startsWith(n+"-")) delete st.runFeels[k]; });
+    Object.keys(st.runNotes).forEach(k=>{ if(k.startsWith(n+"-")) delete st.runNotes[k]; });
+    Object.keys(st.workoutFeels).forEach(k=>{ if(k.startsWith(n+"-")) delete st.workoutFeels[k]; });
+    Object.keys(st.workoutNotes).forEach(k=>{ if(k.startsWith(n+"-")) delete st.workoutNotes[k]; });
     delete st.feel[n];
     st.repeats[n]=(st.repeats[n]||0)+1;
   }
@@ -290,14 +320,21 @@ document.addEventListener("click",e=>{
 });
 
 document.addEventListener("input",e=>{
-  if(!e.target.matches("[data-set]")) return;
-  const k=e.target.dataset.set;
-  if(e.target.value) st.sets[k]=e.target.value; else delete st.sets[k];
+  if(e.target.matches("[data-set]")){
+    const k=e.target.dataset.set;
+    if(e.target.value) st.sets[k]=e.target.value; else delete st.sets[k];
+  } else if(e.target.matches("[data-note-type]")){
+    const bucket=e.target.dataset.noteType==="run"?st.runNotes:st.workoutNotes;
+    const k=e.target.dataset.noteKey;
+    if(e.target.value) bucket[k]=e.target.value; else delete bucket[k];
+  } else {
+    return;
+  }
   save();
 });
 
 document.getElementById("reset").addEventListener("click",()=>{
-  if(confirm("Erase all progress?")){ st={done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{}}; save(); render(); }
+  if(confirm("Erase all progress?")){ st={done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{}}; save(); render(); }
 });
 
 load(); render();
