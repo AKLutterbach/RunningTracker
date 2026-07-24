@@ -49,19 +49,24 @@
   .runs{border-top:1px solid var(--line)}
   .day{border-bottom:1px solid var(--line)}
   .day:last-child{border-bottom:none}
-  .run{width:100%;display:flex;gap:12px;padding:12px 16px;text-align:left;align-items:flex-start}
+  .run{width:100%;display:flex;gap:12px;padding:12px 16px;text-align:left;align-items:center}
   .run.done{opacity:.5}
+  .runCheck{flex:0 0 auto}
+  .runCheck .box{margin-top:0}
+  .runToggle{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:6px;padding:4px;text-align:left}
+  .run .runname{margin-bottom:0}
+  .runBody{padding:0 16px 4px 70px}
   .box{flex:0 0 auto;width:20px;height:20px;margin-top:2px;border-radius:5px;border:1.5px solid var(--dim);
        display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--bg)}
   .run.done .box{background:var(--done);border-color:var(--done)}
   .runname{font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.04em;margin-bottom:6px}
   .run.done .runname{text-decoration:line-through}
   .feelLog{padding:0 16px 12px 70px}
-  .feelLog.workoutLog{padding:0 16px 10px 70px;border-bottom:none}
-  .feelBtns{display:flex;gap:6px;margin-top:8px}
-  .feelBtn{flex:0 0 66px;min-width:66px;padding:7px 6px;border:1px solid var(--line);border-radius:4px;color:var(--muted);font-size:11px;font-weight:600}
+  .feelLog.workoutLog{padding:4px 0 0 0;border-bottom:none}
+  .feelBtns{display:flex;gap:6px;width:210px;max-width:100%;margin-top:8px}
+  .feelBtn{flex:1 1 0;min-width:0;padding:7px 6px;border:1px solid var(--line);border-radius:4px;color:var(--muted);font-size:11px;font-weight:600}
   .feelBtn.on{background:rgba(227,165,82,.15);border-color:var(--sandal);color:var(--sandal)}
-  .feelNote{width:100%;height:30px;margin-top:7px;padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surfaceHi);
+  .feelNote{width:210px;max-width:100%;height:30px;margin-top:7px;padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surfaceHi);
        color:var(--text);font:500 12px var(--sans)}
   .feelNote:focus{outline:1.5px solid var(--sandal);border-color:var(--sandal)}
   .feelNote::placeholder{color:var(--dim)}
@@ -152,6 +157,7 @@ const WEEKS=[
 const KEY="sandal-transition-tracker";
 let st={done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{}};
 let openWeek=null;
+let runOpen={}, workoutOpen={};
 
 let storageOK=true;
 function load(){
@@ -213,8 +219,9 @@ function render(){
       body=`<div class="runs">`+w.runs.map((r,i)=>{
         const d=!!st.done[w.n+"-"+i];
         const rk=w.n+"-"+i;
+        const ro=!!runOpen[rk];
         const exercises=strengthRowsFor(r);
-        const wk=workoutKey(w.n,i), wd=!!st.workouts[wk], wo=st.workoutOpen[wk]!==undefined?st.workoutOpen[wk]:!wd;
+        const wk=workoutKey(w.n,i), wd=!!st.workouts[wk], wo=!!workoutOpen[wk];
         const strength=exercises.length?`<div class="workout ${wd?"done":""}">
           <div class="workoutHead">
             <button class="workoutCheck" data-workout="${wk}" aria-pressed="${wd}" aria-label="Mark workout ${r[2]} ${wd?"not done":"done"}">
@@ -224,7 +231,6 @@ function render(){
               <span class="workoutTitle">WORKOUT ${r[2]}</span><span class="caret">${wo?"▾":"▸"}</span>
             </button>
           </div>
-          ${feelLog("workout",wk,st.workoutFeels[wk],st.workoutNotes[wk],"workoutLog")}
           ${wo?`<div class="strength">`+exercises.map((ex,ei)=>
             `<div class="strengthRow">
               <span class="exercise">${ex}</span>
@@ -234,15 +240,17 @@ function render(){
                   return `<input class="setInput" data-set="${k}" value="${esc(st.sets[k]||"")}" placeholder="${si+1}" inputmode="text" autocomplete="off" aria-label="Week ${w.n} run ${i+1} ${ex} set ${si+1}">`;
                 }).join("")}
               </span>
-            </div>`).join("")+`</div>`:""}
+            </div>`).join("")+`${feelLog("workout",wk,st.workoutFeels[wk],st.workoutNotes[wk],"workoutLog")}</div>`:""}
         </div>`:"";
-        return `<div class="day"><button class="run ${d?"done":""}" data-w="${w.n}" data-i="${i}" aria-pressed="${d}">
-          <span class="box">${d?"✓":""}</span>
-          <span style="flex:1;min-width:0">
-            <span class="runname" style="display:block">RUN ${i+1}</span>
-            <span class="line"><span class="tag" style="color:var(--sandal)">SANDALS</span><span class="val">${r[0]}</span></span>
-            <span class="line"><span class="tag" style="color:var(--brooks)">BROOKS</span><span class="val">${r[1]}</span></span>
-          </span></button>${feelLog("run",rk,st.runFeels[rk],st.runNotes[rk])}${strength}</div>`;
+        return `<div class="day"><div class="run ${d?"done":""}">
+          <button class="runCheck" data-w="${w.n}" data-i="${i}" aria-pressed="${d}" aria-label="Mark run ${i+1} ${d?"not done":"done"}"><span class="box">${d?"✓":""}</span></button>
+          <button class="runToggle" data-run-open="${rk}" aria-expanded="${ro}">
+            <span class="runname" style="flex:1;min-width:0">RUN ${i+1}</span><span class="caret">${ro?"▾":"▸"}</span>
+          </button>
+        </div>${ro?`<div class="runBody">
+          <span class="line"><span class="tag" style="color:var(--sandal)">SANDALS</span><span class="val">${r[0]}</span></span>
+          <span class="line"><span class="tag" style="color:var(--brooks)">BROOKS</span><span class="val">${r[1]}</span></span>
+        </div>${feelLog("run",rk,st.runFeels[rk],st.runNotes[rk])}`:""}${strength}</div>`;
       }).join("")+`</div>`;
 
       if(done){
@@ -274,7 +282,7 @@ function render(){
 }
 
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-w],[data-open],[data-feel],[data-repeat],[data-workout],[data-workout-open],[data-log-type]");
+  const t=e.target.closest("[data-w],[data-open],[data-feel],[data-repeat],[data-workout],[data-run-open],[data-workout-open],[data-log-type]");
   if(!t) return;
   if(t.dataset.w!==undefined && t.dataset.i!==undefined){
     const k=t.dataset.w+"-"+t.dataset.i;
@@ -287,15 +295,19 @@ document.addEventListener("click",e=>{
     const k=t.dataset.workout;
     if(st.workouts[k]){
       delete st.workouts[k];
-      st.workoutOpen[k]=true;
+      workoutOpen[k]=true;
     } else {
       st.workouts[k]=true;
-      st.workoutOpen[k]=false;
+      workoutOpen[k]=false;
     }
+  } else if(t.dataset.runOpen){
+    const k=t.dataset.runOpen;
+    runOpen[k]=!runOpen[k];
+    render(); return;
   } else if(t.dataset.workoutOpen){
     const k=t.dataset.workoutOpen;
-    const open=st.workoutOpen[k]!==undefined?st.workoutOpen[k]:!st.workouts[k];
-    st.workoutOpen[k]=!open;
+    workoutOpen[k]=!workoutOpen[k];
+    render(); return;
   } else if(t.dataset.open){
     const n=+t.dataset.open;
     const exp = openWeek===n || (openWeek===null && n===current().n);
@@ -309,6 +321,8 @@ document.addEventListener("click",e=>{
     Object.keys(st.sets).forEach(k=>{ if(k.startsWith(n+"-")) delete st.sets[k]; });
     Object.keys(st.workouts).forEach(k=>{ if(k.startsWith(n+"-")) delete st.workouts[k]; });
     Object.keys(st.workoutOpen).forEach(k=>{ if(k.startsWith(n+"-")) delete st.workoutOpen[k]; });
+    Object.keys(runOpen).forEach(k=>{ if(k.startsWith(n+"-")) delete runOpen[k]; });
+    Object.keys(workoutOpen).forEach(k=>{ if(k.startsWith(n+"-")) delete workoutOpen[k]; });
     Object.keys(st.runFeels).forEach(k=>{ if(k.startsWith(n+"-")) delete st.runFeels[k]; });
     Object.keys(st.runNotes).forEach(k=>{ if(k.startsWith(n+"-")) delete st.runNotes[k]; });
     Object.keys(st.workoutFeels).forEach(k=>{ if(k.startsWith(n+"-")) delete st.workoutFeels[k]; });
@@ -334,7 +348,11 @@ document.addEventListener("input",e=>{
 });
 
 document.getElementById("reset").addEventListener("click",()=>{
-  if(confirm("Erase all progress?")){ st={done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{}}; save(); render(); }
+  if(confirm("Erase all progress?")){
+    st={done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{}};
+    runOpen={}; workoutOpen={};
+    save(); render();
+  }
 });
 
 load(); render();
