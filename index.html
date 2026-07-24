@@ -32,9 +32,9 @@
   .eyebrow{color:var(--muted);font-size:10px;letter-spacing:.14em;margin-bottom:12px}
   .bars{display:flex;align-items:flex-end;gap:6px;height:56px}
   .bars>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
-  .bars i{display:block;border-radius:2px;background:var(--surfaceHi);transition:background .22s}
-  .bars i.on{background:var(--sandal)}
-  .bars i.cur{background:transparent;border:1.5px solid var(--sandal)}
+  .bars i{position:relative;display:block;overflow:hidden;border-radius:2px;background:var(--surfaceHi)}
+  .bars i.cur{border:1.5px solid var(--sandal)}
+  .bars b{position:absolute;left:0;right:0;bottom:0;display:block;background:var(--sandal);transition:height .22s}
   .nums{display:flex;gap:6px;margin-top:8px}
   .nums span{flex:1;text-align:center;font-family:var(--mono);font-size:10px;color:var(--dim)}
   .nums span.cur{color:var(--sandal)}
@@ -201,8 +201,9 @@ function render(){
 
   document.getElementById("bars").innerHTML=WEEKS.map(w=>{
     const pct=((w.min-16)/9)*100;
-    const cls=wkDone(w)?"on":(w.n===cur.n?"cur":"");
-    return `<div><i class="${cls}" style="height:${pct}%"></i></div>`;
+    const fill=(wkCount(w)/w.runs.length)*100;
+    const cls=w.n===cur.n?"cur":"";
+    return `<div><i class="${cls}" style="height:${pct}%"><b style="height:${fill}%"></b></i></div>`;
   }).join("");
 
   document.getElementById("nums").innerHTML=WEEKS.map(w=>
