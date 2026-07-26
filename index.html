@@ -15,6 +15,7 @@
     --bg:#161C22; --surface:#1E262E; --surfaceHi:#263039; --line:#33404B;
     --text:#E2E8EC; --muted:#7A8894; --dim:#4E5A65;
     --sandal:#E3A552; --brooks:#6E93B0; --strength:#9C8DB4; --done:#86A98C;
+    --run1:#7F9DB8; --run2:#9B8CB3; --run3:#B78D9B;
     --display:'Barlow Condensed',system-ui,sans-serif;
     --mono:'IBM Plex Mono',ui-monospace,monospace;
     --sans:'IBM Plex Sans',system-ui,sans-serif;
@@ -59,7 +60,7 @@
   .box{flex:0 0 auto;width:20px;height:20px;margin-top:2px;border-radius:5px;border:1.5px solid var(--dim);
        display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--bg)}
   .run.done .box{background:var(--done);border-color:var(--done)}
-  .runname{font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.04em;margin-bottom:6px}
+  .runname{font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.04em;margin-bottom:6px;color:var(--accent,var(--text))}
   .run.done .runname{text-decoration:line-through}
   .feelLog{padding:0 16px 12px 70px}
   .feelLog.workoutLog{padding:4px 0 0 0;border-bottom:none}
@@ -81,7 +82,7 @@
   .workoutCheck{flex:0 0 auto}
   .workoutCheck .box{margin-top:0}
   .workout.done .box{background:var(--done);border-color:var(--done)}
-  .workoutTitle{flex:1 1 auto;min-width:0;font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.04em;color:var(--strength)}
+  .workoutTitle{flex:1 1 auto;min-width:0;font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.04em;color:var(--accent,var(--strength))}
   .workout.done .workoutTitle{text-decoration:line-through}
   .workoutToggle{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:6px;padding:4px;color:var(--dim);font-size:11px;text-align:left}
   .strength{padding:0 16px 12px 70px}
@@ -144,15 +145,18 @@ const WORKOUTS={A:"Pull-up · Bridge · Handstand",B:"Pushup · Squat · Leg Rai
 const ACC="Heel raises · Side plank · Copenhagen";
 const S="3 / 90s / 3", L="3 / 90s / 4", X="4 / 90s / 4";
 const WEEKS=[
- {n:1,min:18,runs:[[S,S,"A"],[S,S,null],[S,S,"B"]]},
- {n:2,min:18,runs:[[S,S,"A"],[S,S,null],[S,S,"B"]]},
- {n:3,min:19,runs:[[L,S,"A"],[S,S,null],[S,S,"B"]]},
- {n:4,min:20,runs:[[L,S,"A"],[S,S,null],[L,S,"B"]]},
- {n:5,min:21,runs:[[L,S,"A"],[L,S,null],[L,S,"B"]]},
- {n:6,min:22,runs:[[X,S,"A"],[L,S,null],[L,S,"B"]]},
- {n:7,min:23,runs:[[X,S,"A"],[L,S,null],[X,S,"B"]]},
- {n:8,min:24,runs:[[X,L,"A"],[X,L,null],[X,L,"B"]]}
+ {n:1,min:18,runs:[[S,S],[S,S],[S,S]]},
+ {n:2,min:18,runs:[[S,S],[S,S],[S,S]]},
+ {n:3,min:19,runs:[[L,S],[S,S],[S,S]]},
+ {n:4,min:20,runs:[[L,S],[S,S],[L,S]]},
+ {n:5,min:21,runs:[[L,S],[L,S],[L,S]]},
+ {n:6,min:22,runs:[[X,S],[L,S],[L,S]]},
+ {n:7,min:23,runs:[[X,S],[L,S],[X,S]]},
+ {n:8,min:24,runs:[[X,L],[X,L],[X,L]]}
 ];
+// A/B alternate on every run and carry across the week boundary:
+// wk1 A B A · wk2 B A B · wk3 A B A ...
+const workoutFor=(wn,i)=>((wn-1)*3+i)%2?"B":"A";
 
 const KEY="sandal-transition-tracker";
 let st={done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{}};
@@ -181,7 +185,7 @@ const wkDone=w=>w.runs.every((_,i)=>st.done[w.n+"-"+i]);
 const wkCount=w=>w.runs.filter((_,i)=>st.done[w.n+"-"+i]).length;
 const current=()=>WEEKS.find(w=>!wkDone(w))||WEEKS[7];
 const parts=s=>s.split(/\s+[^A-Za-z0-9]+\s+/);
-const strengthRowsFor=r=>r[2]?[...parts(WORKOUTS[r[2]]),...parts(ACC)]:[];
+const strengthRowsFor=(wn,i)=>[...parts(WORKOUTS[workoutFor(wn,i)]),...parts(ACC)];
 const workoutKey=(w,i)=>w+"-"+i;
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const FEELS=[
@@ -221,15 +225,16 @@ function render(){
         const d=!!st.done[w.n+"-"+i];
         const rk=w.n+"-"+i;
         const ro=!!runOpen[rk];
-        const exercises=strengthRowsFor(r);
+        const exercises=strengthRowsFor(w.n,i);
+        const letter=workoutFor(w.n,i);
         const wk=workoutKey(w.n,i), wd=!!st.workouts[wk], wo=!!workoutOpen[wk];
-        const strength=exercises.length?`<div class="workout ${wd?"done":""}">
+        const strength=`<div class="workout ${wd?"done":""}">
           <div class="workoutHead">
-            <button class="workoutCheck" data-workout="${wk}" aria-pressed="${wd}" aria-label="Mark workout ${r[2]} ${wd?"not done":"done"}">
+            <button class="workoutCheck" data-workout="${wk}" aria-pressed="${wd}" aria-label="Mark workout ${letter} ${wd?"not done":"done"}">
               <span class="box">${wd?"✓":""}</span>
             </button>
             <button class="workoutToggle" data-workout-open="${wk}" aria-expanded="${wo}">
-              <span class="workoutTitle">WORKOUT ${r[2]}</span><span class="caret">${wo?"▾":"▸"}</span>
+              <span class="workoutTitle">WORKOUT ${letter}</span><span class="caret">${wo?"▾":"▸"}</span>
             </button>
           </div>
           ${wo?`<div class="strength">`+exercises.map((ex,ei)=>
@@ -242,8 +247,8 @@ function render(){
                 }).join("")}
               </span>
             </div>`).join("")+`${feelLog("workout",wk,st.workoutFeels[wk],st.workoutNotes[wk],"workoutLog")}</div>`:""}
-        </div>`:"";
-        return `<div class="day"><div class="run ${d?"done":""}">
+        </div>`;
+        return `<div class="day" style="--accent:var(--run${i+1})"><div class="run ${d?"done":""}">
           <button class="runCheck" data-w="${w.n}" data-i="${i}" aria-pressed="${d}" aria-label="Mark run ${i+1} ${d?"not done":"done"}"><span class="box">${d?"✓":""}</span></button>
           <button class="runToggle" data-run-open="${rk}" aria-expanded="${ro}">
             <span class="runname" style="flex:1;min-width:0">RUN ${i+1}</span><span class="caret">${ro?"▾":"▸"}</span>
