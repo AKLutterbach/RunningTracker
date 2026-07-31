@@ -21,13 +21,32 @@
     --sans:'IBM Plex Sans',system-ui,sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{max-width:100%;overflow-x:hidden}
   body{background:var(--bg);color:var(--text);font-family:var(--sans);
        padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);-webkit-font-smoothing:antialiased}
-  .wrap{max-width:600px;margin:0 auto;padding:24px 16px 64px}
+  .wrap{width:100%;max-width:600px;margin:0 auto;padding:24px 16px 64px}
   button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
   button:focus-visible{outline:2px solid var(--sandal);outline-offset:2px}
   h1{font-family:var(--display);font-size:30px;font-weight:700;letter-spacing:.02em;line-height:1}
   .sub{color:var(--muted);font-size:12px;margin-top:4px}
+  .topbar{position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .topActions{position:relative;flex:0 0 auto}
+  .savedState{position:absolute;top:13px;right:46px;color:var(--done);font:500 10px var(--mono);opacity:0;transition:opacity .2s;white-space:nowrap}
+  .dataMenuButton{width:38px;height:38px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--sandal)}
+  .dataMenuButton[aria-expanded="true"]{border-color:var(--sandal);background:var(--surfaceHi)}
+  .dataMenuButton svg,.dataMenuAction svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .dataMenu{position:absolute;z-index:45;top:44px;right:0;width:218px;padding:7px;border:1px solid var(--line);border-radius:8px;background:var(--surface);box-shadow:0 12px 32px rgba(0,0,0,.42)}
+  .dataMenu[hidden]{display:none}
+  .dataMenuHead{padding:3px 5px 7px;color:var(--muted);font:500 9px var(--mono);letter-spacing:.12em}
+  .dataMenuAction{width:100%;display:flex;align-items:center;gap:9px;min-height:36px;padding:7px 9px;border-radius:5px;color:var(--text);font-size:12px;text-align:left}
+  .dataMenuAction:hover,.dataMenuAction:active{background:var(--surfaceHi)}
+  .dataMenuAction svg{flex:0 0 auto;color:var(--sandal)}
+  .dataMenuAction:disabled{opacity:.5}
+  .dataMenuAction + .dataMenuAction{margin-top:2px}
+  .dataStatus{min-height:0;margin:5px 4px 1px;color:var(--muted);font:500 9px/1.35 var(--mono)}
+  .dataStatus:empty{display:none}
+  .dataStatus.ok{color:var(--done)}
+  .dataStatus.error{color:#D58B82}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:8px}
   .ridge{padding:16px;margin:20px 0}
   .eyebrow{color:var(--muted);font-size:10px;letter-spacing:.14em;margin-bottom:12px}
@@ -104,10 +123,18 @@
   .strengthRow{display:flex;align-items:center;gap:8px;margin-top:8px;min-width:0}
   .exercise{flex:1 1 auto;min-width:76px;color:var(--text);font-size:12px;line-height:1.25;overflow-wrap:anywhere}
   .sets{display:flex;gap:5px;flex:0 0 auto}
-  .setInput{width:38px;height:28px;padding:3px 4px;border:1px solid var(--line);border-radius:4px;background:var(--surfaceHi);
-       color:var(--text);font:500 12px var(--mono);text-align:center}
+  .setInput{width:42px;height:34px;padding:3px 4px;border:1px solid var(--line);border-radius:4px;background:var(--surfaceHi);
+       color:var(--text);font:500 16px var(--mono);text-align:center}
   .setInput:focus{outline:1.5px solid var(--sandal);border-color:var(--sandal)}
   .setInput::placeholder{color:var(--dim)}
+  .repNav{position:fixed;z-index:60;left:50%;bottom:max(8px,env(safe-area-inset-bottom));transform:translateX(-50%);
+       width:min(360px,calc(100% - 24px));display:flex;align-items:center;gap:6px;padding:7px;
+       border:1px solid var(--line);border-radius:8px;background:rgba(30,38,46,.98);box-shadow:0 8px 28px rgba(0,0,0,.38)}
+  .repNav[hidden]{display:none}
+  .repNav button{min-height:36px;padding:7px 10px;border:1px solid var(--line);border-radius:5px;background:var(--surfaceHi);font-size:13px;font-weight:600}
+  .repNav button:disabled{opacity:.35;cursor:default}
+  .repNav .repDone{background:var(--sandal);border-color:var(--sandal);color:var(--bg)}
+  .repPosition{flex:1;text-align:center;color:var(--muted);font:500 10px var(--mono)}
   .gate{padding:12px 16px;border-top:1px solid var(--line);background:var(--surfaceHi)}
   .gate p{font-size:12px;margin-bottom:8px;line-height:1.5}
   .row{display:flex;gap:8px}
@@ -117,19 +144,47 @@
   .note{padding:16px;margin-top:8px}
   .note p{font-size:12px;line-height:1.6;margin-top:8px}
   .note p:first-of-type{margin-top:0}
+  .setHint{color:var(--dim);font-size:10px!important;margin-top:10px!important}
   .foot{text-align:center;margin-top:24px}
   .foot button{color:var(--dim);font-size:11px}
+  @media (max-width:420px){
+    .strength{padding-left:16px}
+    .strengthRow{gap:6px}
+    .exercise{min-width:0}
+    .sets{gap:4px}
+  }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div style="display:flex;align-items:baseline;justify-content:space-between">
+  <div class="topbar">
     <div>
       <h1>SANDAL TRANSITION</h1>
       <div class="sub">Sandal minutes per week. Everything else serves that.</div>
     </div>
-    <div id="saved" style="color:var(--done);font-size:10px;font-family:var(--mono);opacity:0;transition:opacity .2s">saved</div>
+    <div class="topActions">
+      <div class="savedState" id="saved">saved</div>
+      <button class="dataMenuButton" id="dataMenuButton" type="button" aria-label="Open data menu" aria-controls="dataMenu" aria-expanded="false" title="Data and export">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="5" r="2"></circle><circle cx="6" cy="19" r="2"></circle><circle cx="18" cy="12" r="2"></circle><path d="M6 7v10M8 6h3a7 7 0 0 1 7 7v-3"></path></svg>
+      </button>
+      <div class="dataMenu" id="dataMenu" hidden>
+        <div class="dataMenuHead">YOUR DATA</div>
+        <button class="dataMenuAction" id="exportFile" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 18v3h16v-3"></path></svg>
+          <span class="dataMenuLabel">Export JSON</span>
+        </button>
+        <button class="dataMenuAction" id="copyJson" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg>
+          <span class="dataMenuLabel">Copy JSON</span>
+        </button>
+        <button class="dataMenuAction" id="saveGithub" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="5" r="2"></circle><circle cx="6" cy="19" r="2"></circle><circle cx="18" cy="12" r="2"></circle><path d="M6 7v10M8 6h3a7 7 0 0 1 7 7v-3"></path></svg>
+          <span class="dataMenuLabel">Save to GitHub</span>
+        </button>
+        <p class="dataStatus" id="dataStatus" role="status" aria-live="polite"></p>
+      </div>
+    </div>
   </div>
 
   <div class="card ridge">
@@ -165,6 +220,13 @@
   </div>
 </div>
 
+<div class="repNav" id="repNav" role="toolbar" aria-label="Rep field navigation" hidden>
+  <button id="repBack" type="button" aria-label="Previous rep field">← Back</button>
+  <span class="repPosition" id="repPosition" aria-live="polite"></span>
+  <button id="repNext" type="button" aria-label="Next rep field">Next →</button>
+  <button class="repDone" id="repDone" type="button" aria-label="Save rep and dismiss keyboard">✓ Done</button>
+</div>
+
 <script>
 const WORKOUTS={A:"Pull-up · Bridge · Handstand",B:"Pushup · Squat · Leg Raise"};
 const ACC="Heel raises · Side plank · Copenhagen";
@@ -184,13 +246,26 @@ const WEEKS=[
 const workoutFor=(wn,i)=>((wn-1)*3+i)%2?"B":"A";
 
 const KEY="sandal-transition-tracker";
-let st={done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{}};
+const GH_KEYS={
+  token:"sandal-transition-github-token",
+  owner:"sandal-transition-github-owner",
+  repo:"sandal-transition-github-repo",
+  branch:"sandal-transition-github-branch"
+};
+const SNAPSHOT_KEYS=[KEY,GH_KEYS.owner,GH_KEYS.repo,GH_KEYS.branch];
+const emptyState=()=>({done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{},sessionHistory:[]});
+let st=emptyState();
 let openWeek=null;
 let runOpen={}, workoutOpen={};
 
 let storageOK=true;
 function load(){
-  try{const r=localStorage.getItem(KEY); if(r) st=Object.assign({done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{}},JSON.parse(r));}
+  try{
+    const r=localStorage.getItem(KEY);
+    if(r) st=Object.assign(emptyState(),JSON.parse(r));
+    if(!Array.isArray(st.sessionHistory)) st.sessionHistory=[];
+    migrateCompletedSessions();
+  }
   catch(e){ storageOK=false; }
 }
 function save(){
@@ -212,6 +287,7 @@ const current=()=>WEEKS.find(w=>!wkDone(w))||WEEKS[7];
 const parts=s=>s.split(/\s+[^A-Za-z0-9]+\s+/);
 const strengthRowsFor=(wn,i)=>[...parts(WORKOUTS[workoutFor(wn,i)]),...parts(ACC)];
 const workoutKey=(w,i)=>w+"-"+i;
+const sessionId=(wn,i)=>`${wn}-${i}-r${st.repeats[wn]||0}`;
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const FEELS=[
   ["Smooth","form held, nothing notable"],
@@ -225,6 +301,52 @@ const feelLog=(type,k,selected,note,extraClass="")=>`<div class="feelLog ${extra
   <button class="noteBtn ${note?"has":""}" data-note-type="${type}" data-note-key="${k}" aria-label="${note?"Edit note":"Add note"}">${note?esc(preview(note)):"+ note"}</button>
 </div>`;
 const preview=n=>String(n).replace(/\s+/g," ").trim();
+
+function sessionSnapshot(wn,i,completedAt=new Date().toISOString()){
+  const exercises=strengthRowsFor(wn,i);
+  const sets={};
+  exercises.forEach((exercise,ei)=>{
+    sets[exercise]=[0,1,2].map(si=>st.sets[`${wn}-${i}-${ei}-${si}`]??null);
+  });
+  return {id:sessionId(wn,i),workoutType:workoutFor(wn,i),week:wn,run:i,round:st.repeats[wn]||0,completedAt,sets};
+}
+function recordCompletedSession(wn,i,completedAt){
+  const id=sessionId(wn,i);
+  const at=st.sessionHistory.findIndex(s=>s&&s.id===id);
+  const prior=at>=0?st.sessionHistory[at]:null;
+  const entry=sessionSnapshot(wn,i,completedAt||(prior&&prior.completedAt));
+  if(at>=0) st.sessionHistory[at]=entry; else st.sessionHistory.push(entry);
+}
+function removeCurrentSession(wn,i){
+  const id=sessionId(wn,i);
+  st.sessionHistory=st.sessionHistory.filter(s=>!s||s.id!==id);
+}
+function migrateCompletedSessions(){
+  let changed=false;
+  WEEKS.forEach(w=>w.runs.forEach((_,i)=>{
+    if(st.workouts[workoutKey(w.n,i)]&&!st.sessionHistory.some(s=>s&&s.id===sessionId(w.n,i))){
+      recordCompletedSession(w.n,i,`legacy-${String(w.n).padStart(2,"0")}-${i}`);
+      changed=true;
+    }
+  }));
+  if(changed){
+    try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){storageOK=false;}
+  }
+}
+function previousSession(wn,i){
+  const id=sessionId(wn,i), type=workoutFor(wn,i);
+  const currentIndex=st.sessionHistory.findIndex(s=>s&&s.id===id);
+  for(let n=(currentIndex>=0?currentIndex:st.sessionHistory.length)-1;n>=0;n--){
+    const session=st.sessionHistory[n];
+    if(session&&session.workoutType===type) return session;
+  }
+  return null;
+}
+function previousSetValue(wn,i,exercise,setIndex){
+  const session=previousSession(wn,i);
+  const value=session&&session.sets&&session.sets[exercise]?session.sets[exercise][setIndex]:null;
+  return value===null||value===undefined?"":String(value);
+}
 
 function render(){
   const cur=current();
@@ -253,6 +375,7 @@ function render(){
         const ro=!!runOpen[rk];
         const exercises=strengthRowsFor(w.n,i);
         const letter=workoutFor(w.n,i);
+        const priorSession=previousSession(w.n,i);
         const wk=workoutKey(w.n,i), wd=!!st.workouts[wk], wo=!!workoutOpen[wk];
         const strength=`<div class="workout ${wd?"done":""}">
           <div class="workoutHead">
@@ -269,10 +392,13 @@ function render(){
               <span class="sets">
                 ${[0,1,2].map(si=>{
                   const k=`${w.n}-${i}-${ei}-${si}`;
-                  return `<input class="setInput" data-set="${k}" value="${esc(st.sets[k]||"")}" placeholder="${si+1}" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="Week ${w.n} run ${i+1} ${ex} set ${si+1}">`;
+                  const previous=previousSetValue(w.n,i,ex,si);
+                  const label=`Week ${w.n} run ${i+1} ${ex} set ${si+1}${previous?`, previous ${previous}`:""}`;
+                  const enterHint=ei===exercises.length-1&&si===2?"done":"next";
+                  return `<input class="setInput" type="text" data-set="${k}" data-previous="${esc(previous)}" value="${esc(st.sets[k]??"")}" placeholder="${esc(previous||String(si+1))}" inputmode="numeric" pattern="[0-9]*" enterkeyhint="${enterHint}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="${esc(label)}">`;
                 }).join("")}
               </span>
-            </div>`).join("")+`${feelLog("workout",wk,st.workoutFeels[wk],st.workoutNotes[wk],"workoutLog")}</div>`:""}
+            </div>`).join("")+`${priorSession?`<p class="setHint">Faded values are from the previous Workout ${letter}. Tap one to use and save it.</p>`:""}${feelLog("workout",wk,st.workoutFeels[wk],st.workoutNotes[wk],"workoutLog")}</div>`:""}
         </div>`;
         return `<div class="day" style="--accent:var(--run${i+1})"><div class="run ${d?"done":""}">
           <button class="runCheck" data-w="${w.n}" data-i="${i}" aria-pressed="${d}" aria-label="Mark run ${i+1} ${d?"not done":"done"}"><span class="box">${d?"✓":""}</span></button>
@@ -326,11 +452,14 @@ document.addEventListener("click",e=>{
     if(bucket[k]===v) delete bucket[k]; else bucket[k]=v;
   } else if(t.dataset.workout){
     const k=t.dataset.workout;
+    const [wn,i]=k.split("-").map(Number);
     if(st.workouts[k]){
       delete st.workouts[k];
+      removeCurrentSession(wn,i);
       workoutOpen[k]=true;
     } else {
       st.workouts[k]=true;
+      recordCompletedSession(wn,i);
       workoutOpen[k]=false;
     }
   } else if(t.dataset.runOpen){
@@ -366,16 +495,99 @@ document.addEventListener("click",e=>{
   save(); render();
 });
 
+// --- rep input navigation ----------------------------------------------
+const repNav=document.getElementById("repNav");
+const repBack=document.getElementById("repBack");
+const repNext=document.getElementById("repNext");
+const repDone=document.getElementById("repDone");
+const repPosition=document.getElementById("repPosition");
+let activeRep=null;
+const repFields=()=>Array.from(document.querySelectorAll(".setInput"));
+function fitRepNav(){
+  if(repNav.hidden) return;
+  const vv=window.visualViewport;
+  const visibleBottom=vv?vv.offsetTop+vv.height:window.innerHeight;
+  repNav.style.bottom="auto";
+  repNav.style.top=Math.max(8,visibleBottom-repNav.offsetHeight-8)+"px";
+}
+function updateRepNav(){
+  const fields=repFields(), index=fields.indexOf(activeRep);
+  repBack.disabled=index<=0;
+  repNext.disabled=index<0||index>=fields.length-1;
+  repPosition.textContent=index>=0?`${index+1} / ${fields.length}`:"";
+  requestAnimationFrame(fitRepNav);
+}
+function showRepNav(input){
+  activeRep=input;
+  repNav.hidden=false;
+  updateRepNav();
+}
+function hideRepNav(){
+  repNav.hidden=true;
+  repNav.style.top=""; repNav.style.bottom="";
+  activeRep=null;
+}
+function moveRep(direction){
+  const fields=repFields(), index=fields.indexOf(activeRep);
+  const target=fields[index+direction];
+  if(!target) return;
+  target.focus({preventScroll:true});
+  target.scrollIntoView({block:"center",inline:"nearest"});
+  showRepNav(target);
+}
+function finishRep(){
+  const input=activeRep;
+  if(input){
+    input.dispatchEvent(new Event("change",{bubbles:true}));
+    save();
+    input.blur();
+  }
+  hideRepNav();
+}
+repNav.addEventListener("pointerdown",e=>{
+  if(e.target.closest("button")) e.preventDefault();
+});
+repBack.addEventListener("click",()=>moveRep(-1));
+repNext.addEventListener("click",()=>moveRep(1));
+repDone.addEventListener("click",finishRep);
+if(window.visualViewport){
+  window.visualViewport.addEventListener("resize",fitRepNav);
+  window.visualViewport.addEventListener("scroll",fitRepNav);
+}
+window.addEventListener("resize",fitRepNav);
+
 document.addEventListener("input",e=>{
   if(e.target.matches("[data-set]")){
     const k=e.target.dataset.set;
     if(e.target.value) st.sets[k]=e.target.value; else delete st.sets[k];
+    const [wn,i]=k.split("-").map(Number);
+    if(st.workouts[workoutKey(wn,i)]) recordCompletedSession(wn,i);
   } else if(e.target.id==="noteText"){
     writeNote();
   } else {
     return;
   }
   save();
+});
+
+document.addEventListener("focusin",e=>{
+  if(!e.target.matches("[data-set]")) return;
+  showRepNav(e.target);
+  if(e.target.value||!e.target.dataset.previous) return;
+  e.target.value=e.target.dataset.previous;
+  const k=e.target.dataset.set;
+  st.sets[k]=e.target.value;
+  const [wn,i]=k.split("-").map(Number);
+  if(st.workouts[workoutKey(wn,i)]) recordCompletedSession(wn,i);
+  save();
+  requestAnimationFrame(()=>e.target.select());
+});
+
+document.addEventListener("focusout",e=>{
+  if(!e.target.matches("[data-set]")) return;
+  setTimeout(()=>{
+    if(!document.activeElement||!document.activeElement.matches("[data-set]")) hideRepNav();
+  },0);
 });
 
 // --- note modal ---------------------------------------------------------
@@ -428,11 +640,130 @@ function closeNote(){
 }
 document.getElementById("noteDone").addEventListener("click",closeNote);
 noteModal.addEventListener("click",e=>{ if(e.target===noteModal) closeNote(); });
-document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeNote(); });
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){closeNote();closeDataMenu();}
+  if(e.key==="Enter"&&e.target.matches&&e.target.matches("[data-set]")){
+    e.preventDefault();
+    const fields=repFields(), index=fields.indexOf(e.target);
+    if(index>=0&&index<fields.length-1) moveRep(1); else finishRep();
+  }
+});
+
+// --- export and GitHub backup ------------------------------------------
+const dataMenuButton=document.getElementById("dataMenuButton");
+const dataMenu=document.getElementById("dataMenu");
+const dataStatus=document.getElementById("dataStatus");
+function closeDataMenu(){
+  dataMenu.hidden=true;
+  dataMenuButton.setAttribute("aria-expanded","false");
+}
+dataMenuButton.addEventListener("click",e=>{
+  e.stopPropagation();
+  const opening=dataMenu.hidden;
+  dataMenu.hidden=!opening;
+  dataMenuButton.setAttribute("aria-expanded",String(opening));
+});
+dataMenu.addEventListener("click",e=>e.stopPropagation());
+document.addEventListener("click",closeDataMenu);
+function setDataStatus(message,type=""){
+  dataStatus.textContent=message;
+  dataStatus.className=`dataStatus ${type}`.trim();
+}
+function gatherSnapshot(){
+  const data={};
+  SNAPSHOT_KEYS.forEach(key=>{
+    const value=localStorage.getItem(key);
+    if(value!==null) data[key]=value;
+  });
+  return {schemaVersion:1,app:"sandal-transition-tracker",exportedAt:new Date().toISOString(),localStorage:data,excludedKeys:[GH_KEYS.token]};
+}
+const serializeSnapshot=()=>JSON.stringify(gatherSnapshot(),null,2);
+function localDate(){
+  const d=new Date(), pad=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+document.getElementById("exportFile").addEventListener("click",()=>{
+  try{
+    const json=serializeSnapshot();
+    const url=URL.createObjectURL(new Blob([json],{type:"application/json"}));
+    const a=document.createElement("a");
+    a.href=url; a.download=`runtracker-${localDate()}.json`; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    setDataStatus("Export downloaded.","ok");
+  }catch(e){setDataStatus(`Export failed: ${e.message}`,"error");}
+});
+async function copyText(text){
+  if(navigator.clipboard&&window.isSecureContext) return navigator.clipboard.writeText(text);
+  const area=document.createElement("textarea");
+  area.value=text; area.style.position="fixed"; area.style.opacity="0";
+  document.body.appendChild(area); area.select();
+  const ok=document.execCommand("copy"); area.remove();
+  if(!ok) throw new Error("Clipboard access was denied");
+}
+document.getElementById("copyJson").addEventListener("click",async()=>{
+  try{await copyText(serializeSnapshot());setDataStatus("JSON copied to clipboard.","ok");}
+  catch(e){setDataStatus(`Copy failed: ${e.message}`,"error");}
+});
+function githubSettings(){
+  let token=localStorage.getItem(GH_KEYS.token);
+  let owner=localStorage.getItem(GH_KEYS.owner);
+  let repo=localStorage.getItem(GH_KEYS.repo);
+  let branch=localStorage.getItem(GH_KEYS.branch)||"main";
+  if(!token) token=prompt("GitHub fine-grained token (one-repo Contents read/write only):","");
+  if(token&&!owner) owner=prompt("GitHub repository owner:","");
+  if(token&&owner&&!repo) repo=prompt("GitHub repository name:","");
+  if(token&&owner&&repo&&!localStorage.getItem(GH_KEYS.branch)){
+    const enteredBranch=prompt("GitHub branch:",branch);
+    if(enteredBranch===null) return null;
+    branch=enteredBranch.trim()||branch;
+  }
+  token=token&&token.trim(); owner=owner&&owner.trim(); repo=repo&&repo.trim(); branch=branch&&branch.trim();
+  if(!token||!owner||!repo||!branch) return null;
+  localStorage.setItem(GH_KEYS.token,token);
+  localStorage.setItem(GH_KEYS.owner,owner);
+  localStorage.setItem(GH_KEYS.repo,repo);
+  localStorage.setItem(GH_KEYS.branch,branch);
+  return {token,owner,repo,branch};
+}
+async function githubError(response){
+  let detail="";
+  try{const body=await response.json();detail=body.message||JSON.stringify(body);}catch(e){detail=await response.text();}
+  return `${response.status} ${detail||response.statusText}`.trim();
+}
+function utf8Base64(text){
+  const bytes=new TextEncoder().encode(text);
+  let binary="";
+  for(let i=0;i<bytes.length;i+=0x8000) binary+=String.fromCharCode(...bytes.subarray(i,i+0x8000));
+  return btoa(binary);
+}
+document.getElementById("saveGithub").addEventListener("click",async()=>{
+  const settings=githubSettings();
+  if(!settings){setDataStatus("GitHub save cancelled; settings were not changed.","error");return;}
+  const button=document.getElementById("saveGithub");
+  const label=button.querySelector(".dataMenuLabel");
+  button.disabled=true; label.textContent="Saving..."; setDataStatus("Checking data.json on GitHub...");
+  try{
+    const path=`https://api.github.com/repos/${encodeURIComponent(settings.owner)}/${encodeURIComponent(settings.repo)}/contents/data.json`;
+    const headers={Accept:"application/vnd.github+json",Authorization:`Bearer ${settings.token}`,"X-GitHub-Api-Version":"2022-11-28"};
+    const getResponse=await fetch(`${path}?ref=${encodeURIComponent(settings.branch)}`,{headers});
+    let sha;
+    if(getResponse.ok){sha=(await getResponse.json()).sha;}
+    else if(getResponse.status!==404){throw new Error(await githubError(getResponse));}
+    const json=serializeSnapshot();
+    const body={message:`Update run tracker data ${new Date().toISOString()}`,content:utf8Base64(json),branch:settings.branch};
+    if(sha) body.sha=sha;
+    const putResponse=await fetch(path,{method:"PUT",headers:{...headers,"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(!putResponse.ok) throw new Error(await githubError(putResponse));
+    const result=await putResponse.json();
+    const shortSha=result.commit&&result.commit.sha?` (${result.commit.sha.slice(0,7)})`:"";
+    setDataStatus(`Committed data.json successfully${shortSha}.`,"ok");
+  }catch(e){setDataStatus(`GitHub save failed: ${e.message}`,"error");}
+  finally{button.disabled=false;label.textContent="Save to GitHub";}
+});
 
 document.getElementById("reset").addEventListener("click",()=>{
   if(confirm("Erase all progress?")){
-    st={done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{}};
+    st=emptyState();
     runOpen={}; workoutOpen={};
     save(); render();
   }
