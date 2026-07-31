@@ -395,7 +395,7 @@ function render(){
                   const previous=previousSetValue(w.n,i,ex,si);
                   const label=`Week ${w.n} run ${i+1} ${ex} set ${si+1}${previous?`, previous ${previous}`:""}`;
                   const enterHint=ei===exercises.length-1&&si===2?"done":"next";
-                  return `<input class="setInput" type="text" data-set="${k}" data-previous="${esc(previous)}" value="${esc(st.sets[k]??"")}" placeholder="${esc(previous||String(si+1))}" inputmode="numeric" pattern="[0-9]*" enterkeyhint="${enterHint}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="${esc(label)}">`;
+                  return `<input class="setInput" type="text" data-set="${k}" data-previous="${esc(previous)}" value="${esc(st.sets[k]??"")}" placeholder="${esc(previous||"-")}" inputmode="numeric" pattern="[0-9]*" enterkeyhint="${enterHint}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="${esc(label)}">`;
                 }).join("")}
               </span>
             </div>`).join("")+`${priorSession?`<p class="setHint">Faded values are from the previous Workout ${letter}. Tap one to use and save it.</p>`:""}${feelLog("workout",wk,st.workoutFeels[wk],st.workoutNotes[wk],"workoutLog")}</div>`:""}
@@ -474,7 +474,17 @@ document.addEventListener("click",e=>{
     const n=+t.dataset.open;
     const exp = openWeek===n || (openWeek===null && n===current().n);
     openWeek = exp ? -1 : n;
-    render(); return;
+    render();
+    if(!exp){
+      requestAnimationFrame(()=>{
+        const header=document.querySelector(`[data-open="${n}"]`);
+        if(header){
+          const behavior=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth";
+          header.closest(".wk").scrollIntoView({block:"start",behavior});
+        }
+      });
+    }
+    return;
   } else if(t.dataset.feel){
     st.feel[t.dataset.feel]=t.dataset.v;
   } else if(t.dataset.repeat){
