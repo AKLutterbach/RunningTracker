@@ -29,6 +29,8 @@
   button:focus-visible{outline:2px solid var(--sandal);outline-offset:2px}
   h1{font-family:var(--display);font-size:30px;font-weight:700;letter-spacing:.02em;line-height:1}
   .sub{color:var(--muted);font-size:12px;margin-top:4px}
+  .trendLink{display:inline-block;margin-top:9px;color:var(--sandal);font:500 10px var(--mono);letter-spacing:.08em;text-decoration:none}
+  .trendLink:hover,.trendLink:active{text-decoration:underline}
   .topbar{position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
   .topActions{position:relative;flex:0 0 auto}
   .savedState{position:absolute;top:13px;right:46px;color:var(--done);font:500 10px var(--mono);opacity:0;transition:opacity .2s;white-space:nowrap}
@@ -76,6 +78,12 @@
   .runToggle{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:6px;padding:4px;text-align:left}
   .run .runname{margin-bottom:0}
   .runBody{padding:0 16px 4px 50px}
+  .runMetrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:320px;max-width:100%;margin-top:10px}
+  .runMetric{display:block;min-width:0;color:var(--dim);font:500 8px var(--mono);letter-spacing:.07em}
+  .runMetricInput{display:block;width:100%;height:34px;margin-top:4px;padding:3px 5px;border:1px solid var(--line);border-radius:4px;background:var(--surfaceHi);color:var(--text);font:500 15px var(--mono);text-align:center;-moz-appearance:textfield}
+  .runMetricInput::-webkit-inner-spin-button,.runMetricInput::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+  .runMetricInput:focus{outline:1.5px solid var(--sandal);border-color:var(--sandal)}
+  .runMetricInput::placeholder{color:var(--dim)}
   .box{flex:0 0 auto;width:20px;height:20px;margin-top:2px;border-radius:5px;border:1.5px solid var(--dim);
        display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--bg)}
   .run.done .box{background:var(--done);border-color:var(--done)}
@@ -175,6 +183,7 @@
     <div>
       <h1>SANDAL TRANSITION</h1>
       <div class="sub">Sandal minutes per week. Everything else serves that.</div>
+      <a class="trendLink" href="feelings.html">FEELING TRENDS →</a>
     </div>
     <div class="topActions">
       <div class="savedState" id="saved">saved</div>
@@ -266,7 +275,7 @@ const GH_KEYS={
   branch:"sandal-transition-github-branch"
 };
 const SNAPSHOT_KEYS=[KEY,GH_KEYS.owner,GH_KEYS.repo,GH_KEYS.branch];
-const emptyState=()=>({done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{},offDayDone:{},offDayFeels:{},offDayNotes:{},sessionHistory:[]});
+const emptyState=()=>({done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runMetrics:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{},offDayDone:{},offDayFeels:{},offDayNotes:{},sessionHistory:[]});
 let st=emptyState();
 let openWeek=null;
 let runOpen={}, workoutOpen={}, offDayOpen={};
@@ -403,6 +412,7 @@ function render(){
         const d=!!st.done[w.n+"-"+i];
         const rk=w.n+"-"+i;
         const ro=!!runOpen[rk];
+        const rm=st.runMetrics[rk]||{};
         const exercises=strengthRowsFor(w.n,i);
         const letter=workoutFor(w.n,i);
         const priorSession=previousSession(w.n,i);
@@ -440,6 +450,11 @@ function render(){
         </div>${ro?`<div class="runBody">
           <span class="line"><span class="tag" style="color:var(--sandal)">SANDALS</span><span class="val">${r[0]}</span></span>
           <span class="line"><span class="tag" style="color:var(--brooks)">BROOKS</span><span class="val">${r[1]}</span></span>
+          <div class="runMetrics">
+            <label class="runMetric">DISTANCE (MI)<input class="runMetricInput" type="number" min="0" step="0.01" inputmode="decimal" data-run-key="${rk}" data-run-metric="distance" value="${esc(rm.distance??"")}" placeholder="0.00" aria-label="Run ${i+1} distance in miles"></label>
+            <label class="runMetric">SANDAL (MIN)<input class="runMetricInput" type="number" min="0" step="0.1" inputmode="decimal" data-run-key="${rk}" data-run-metric="sandalMinutes" value="${esc(rm.sandalMinutes??"")}" placeholder="0" aria-label="Run ${i+1} sandal minutes"></label>
+            <label class="runMetric">BROOKS (MIN)<input class="runMetricInput" type="number" min="0" step="0.1" inputmode="decimal" data-run-key="${rk}" data-run-metric="brooksMinutes" value="${esc(rm.brooksMinutes??"")}" placeholder="0" aria-label="Run ${i+1} Brooks minutes"></label>
+          </div>
         </div>${feelLog("run",rk,st.runFeels[rk],st.runNotes[rk])}`:""}${strength}</div>${recovery}${secondRecovery}`;
       }).join("")+`</div>`;
 
@@ -537,6 +552,7 @@ document.addEventListener("click",e=>{
     Object.keys(offDayOpen).forEach(k=>{ if(k.startsWith(n+"-")) delete offDayOpen[k]; });
     Object.keys(st.runFeels).forEach(k=>{ if(k.startsWith(n+"-")) delete st.runFeels[k]; });
     Object.keys(st.runNotes).forEach(k=>{ if(k.startsWith(n+"-")) delete st.runNotes[k]; });
+    Object.keys(st.runMetrics).forEach(k=>{ if(k.startsWith(n+"-")) delete st.runMetrics[k]; });
     Object.keys(st.workoutFeels).forEach(k=>{ if(k.startsWith(n+"-")) delete st.workoutFeels[k]; });
     Object.keys(st.workoutNotes).forEach(k=>{ if(k.startsWith(n+"-")) delete st.workoutNotes[k]; });
     Object.keys(st.offDayDone).forEach(k=>{ if(k.startsWith(n+"-")) delete st.offDayDone[k]; });
@@ -615,6 +631,12 @@ document.addEventListener("input",e=>{
     if(e.target.value) st.sets[k]=e.target.value; else delete st.sets[k];
     const [wn,i]=k.split("-").map(Number);
     if(st.workouts[workoutKey(wn,i)]) recordCompletedSession(wn,i);
+  } else if(e.target.matches("[data-run-metric]")){
+    const k=e.target.dataset.runKey, metric=e.target.dataset.runMetric;
+    if(!st.runMetrics[k]) st.runMetrics[k]={};
+    if(e.target.value!=="") st.runMetrics[k][metric]=e.target.value;
+    else delete st.runMetrics[k][metric];
+    if(!Object.keys(st.runMetrics[k]).length) delete st.runMetrics[k];
   } else if(e.target.id==="noteText"){
     writeNote();
   } else {

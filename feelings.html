@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#161C22">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Feeling Trends · Sandal Transition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#161C22;--surface:#1E262E;--surfaceHi:#263039;--line:#33404B;
+    --text:#E2E8EC;--muted:#7A8894;--dim:#4E5A65;--sandal:#E3A552;--brooks:#6E93B0;--feeling:#B78D9B;--done:#86A98C;
+    --display:'Barlow Condensed',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --sans:'IBM Plex Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);-webkit-font-smoothing:antialiased}
+  .wrap{width:100%;max-width:600px;margin:0 auto;padding:24px 16px 64px}
+  a{color:inherit}
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  button:focus-visible,a:focus-visible{outline:2px solid var(--sandal);outline-offset:2px}
+  .back{display:inline-block;margin-bottom:18px;color:var(--sandal);font:500 10px var(--mono);letter-spacing:.08em;text-decoration:none}
+  .back:hover,.back:active{text-decoration:underline}
+  h1{font-family:var(--display);font-size:30px;font-weight:700;letter-spacing:.02em;line-height:1}
+  .sub{max-width:470px;color:var(--muted);font-size:12px;line-height:1.5;margin-top:6px}
+  .card{margin-top:20px;padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+  .chartControls{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .viewSwitch{display:flex;gap:4px;min-width:0;padding:4px;background:var(--bg);border:1px solid var(--line);border-radius:7px}
+  .viewButton{flex:1;min-width:0;padding:8px 3px;border-radius:4px;color:var(--muted);font-size:11px;font-weight:600;white-space:nowrap}
+  .viewButton.on{background:var(--surfaceHi);color:var(--sandal)}
+  .chartHead{margin:16px 0 8px}
+  .eyebrow{color:var(--muted);font-size:10px;letter-spacing:.14em}
+  .chart{width:100%;min-height:280px}
+  .chart svg{display:block;width:100%;height:auto;overflow:visible}
+  .grid{stroke:var(--line);stroke-width:1}
+  .weekGrid{stroke:var(--line);stroke-width:.7;stroke-dasharray:2 4;opacity:.65}
+  .axisText{fill:var(--muted);font:500 10px var(--mono)}
+  .axisTitle{fill:var(--dim);font:500 9px var(--mono);letter-spacing:.12em}
+  .seriesLine{fill:none;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
+  .seriesPoint{fill:var(--surface);stroke-width:2.2}
+  .seriesPoint:focus{outline:none;fill:var(--text)}
+  .empty{fill:var(--muted);font:500 11px var(--sans)}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 14px;min-height:18px;margin-top:4px;color:var(--muted);font-size:10px}
+  .legendItem{display:flex;align-items:center;gap:5px}
+  .legendSwatch{width:16px;height:2px;border-radius:2px}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .stat{padding:10px 12px;background:var(--surfaceHi);border-radius:5px}
+  .statValue{font:600 20px var(--display);color:var(--text)}
+  .statLabel{margin-top:2px;color:var(--dim);font:500 9px var(--mono);letter-spacing:.1em}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; BACK TO TRACKER</a>
+  <h1>FEELING TRENDS</h1>
+  <p class="sub">Compare recovery with running volume across the program. Smooth days plot at the top and rough days at the bottom.</p>
+
+  <main class="card">
+    <div class="chartControls">
+      <div class="viewSwitch" role="group" aria-label="Chart time scale">
+        <button class="viewButton on" type="button" data-view="daily" aria-pressed="true">Daily</button>
+        <button class="viewButton" type="button" data-view="weekly" aria-pressed="false">Weekly</button>
+      </div>
+      <div class="viewSwitch" role="group" aria-label="Running volume metric">
+        <button class="viewButton on" type="button" data-volume="time" aria-pressed="true">Time</button>
+        <button class="viewButton" type="button" data-volume="distance" aria-pressed="false">Distance</button>
+      </div>
+    </div>
+
+    <div class="chartHead">
+      <div class="eyebrow" id="chartTitle">DAILY FEELING + TIME</div>
+    </div>
+
+    <div class="chart" id="chart"></div>
+    <div class="legend" id="legend"></div>
+
+    <div class="stats">
+      <div class="stat"><div class="statValue" id="entryCount">0</div><div class="statLabel">FEELING ENTRIES</div></div>
+      <div class="stat"><div class="statValue" id="periodCount">0</div><div class="statLabel" id="periodLabel">DAYS LOGGED</div></div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const KEY="sandal-transition-tracker";
+const FEEL_VALUE={Smooth:1,OK:2,Rough:3};
+let view="daily";
+let volumeMode="time";
+
+const esc=v=>String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const mean=values=>values.reduce((sum,value)=>sum+value,0)/values.length;
+const averageLabel=value=>{
+  if(Math.abs(value-1)<.005) return "Smooth";
+  if(Math.abs(value-2)<.005) return "OK";
+  if(Math.abs(value-3)<.005) return "Rough";
+  return value.toFixed(2)+" average";
+};
+
+function loadState(){
+  try{
+    const saved=localStorage.getItem(KEY);
+    return saved?JSON.parse(saved):{};
+  }catch(e){
+    return {};
+  }
+}
+
+function collectData(){
+  const state=loadState();
+  const feelings=[];
+  const add=(bucket,type,dayForIndex)=>{
+    Object.entries(bucket||{}).forEach(([key,feel])=>{
+      if(!(feel in FEEL_VALUE)) return;
+      const match=key.match(/^(\d+)-(\d+)$/);
+      if(!match) return;
+      const week=Number(match[1]), index=Number(match[2]);
+      if(week<1||week>8) return;
+      const dayInWeek=dayForIndex(index);
+      if(dayInWeek<1||dayInWeek>7) return;
+      feelings.push({
+        week,
+        day:(week-1)*7+dayInWeek,
+        value:FEEL_VALUE[feel],
+        feel,
+        type
+      });
+    });
+  };
+  add(state.runFeels,"Run",index=>index*2+1);
+  add(state.workoutFeels,"Workout",index=>index*2+1);
+  add(state.offDayFeels,"Off Day",index=>[2,4,6,7][index]||0);
+  const metrics=[];
+  Object.entries(state.runMetrics||{}).forEach(([key,values])=>{
+    const match=key.match(/^(\d+)-(\d+)$/);
+    if(!match) return;
+    const week=Number(match[1]),index=Number(match[2]);
+    if(week<1||week>8||index<0||index>2) return;
+    const number=value=>value===""||value===null||value===undefined?null:Number(value);
+    const distance=number(values&&values.distance);
+    const sandalMinutes=number(values&&values.sandalMinutes);
+    const brooksMinutes=number(values&&values.brooksMinutes);
+    metrics.push({
+      week,
+      day:(week-1)*7+index*2+1,
+      distance:Number.isFinite(distance)&&distance>=0?distance:null,
+      sandalMinutes:Number.isFinite(sandalMinutes)&&sandalMinutes>=0?sandalMinutes:null,
+      brooksMinutes:Number.isFinite(brooksMinutes)&&brooksMinutes>=0?brooksMinutes:null
+    });
+  });
+  return {feelings,metrics};
+}
+
+function aggregateFeelings(entries,mode){
+  const groups=new Map();
+  entries.forEach(entry=>{
+    const key=mode==="daily"?entry.day:entry.week;
+    if(!groups.has(key)) groups.set(key,[]);
+    groups.get(key).push(entry);
+  });
+  return [...groups.entries()].sort((a,b)=>a[0]-b[0]).map(([period,items])=>({
+    period,
+    value:mean(items.map(item=>item.value)),
+    count:items.length,
+    items
+  }));
+}
+
+function aggregateVolume(entries,mode,metric){
+  const groups=new Map();
+  entries.forEach(entry=>{
+    const value=entry[metric];
+    if(value===null) return;
+    const period=mode==="daily"?entry.day:entry.week;
+    groups.set(period,(groups.get(period)||0)+value);
+  });
+  return [...groups.entries()].sort((a,b)=>a[0]-b[0]).map(([period,value])=>({period,value}));
+}
+
+function niceMax(values){
+  const max=Math.max(0,...values);
+  if(max<=0) return 1;
+  const power=Math.pow(10,Math.floor(Math.log10(max)));
+  const fraction=max/power;
+  return (fraction<=1?1:fraction<=2?2:fraction<=5?5:10)*power;
+}
+
+const volumeLabel=value=>Number.isInteger(value)?String(value):value.toFixed(value<10?1:0);
+
+function render(){
+  const {feelings,metrics}=collectData();
+  const feelingPoints=aggregateFeelings(feelings,view);
+  const daily=view==="daily";
+  const sandalPoints=volumeMode==="time"?aggregateVolume(metrics,view,"sandalMinutes"):[];
+  const brooksPoints=volumeMode==="time"?aggregateVolume(metrics,view,"brooksMinutes"):[];
+  const distancePoints=volumeMode==="distance"?aggregateVolume(metrics,view,"distance"):[];
+  const volumePoints=[...sandalPoints,...brooksPoints,...distancePoints];
+  const width=360,height=280,left=50,right=44,top=18,bottom=43;
+  const plotWidth=width-left-right,plotHeight=height-top-bottom;
+  const domainMax=daily?56:8;
+  const x=period=>left+((period-1)/(domainMax-1))*plotWidth;
+  const yFeeling=value=>top+((value-1)/2)*plotHeight;
+  const volumeMax=niceMax(volumePoints.map(point=>point.value));
+  const yVolume=value=>top+plotHeight-(value/volumeMax)*plotHeight;
+  const xTicks=daily?[1,8,15,22,29,36,43,50,56]:[1,2,3,4,5,6,7,8];
+
+  const horizontal=[1,2,3].map(value=>{
+    const label=value===3?"Rough":value===2?"OK":"Smooth";
+    return `<line class="grid" x1="${left}" y1="${yFeeling(value)}" x2="${width-right}" y2="${yFeeling(value)}"></line>
+      <text class="axisText" x="${left-8}" y="${yFeeling(value)+3}" text-anchor="end">${label}</text>`;
+  }).join("");
+
+  const volumeAxis=[volumeMax,volumeMax/2,0].map(value=>`<text class="axisText" x="${width-right+7}" y="${yVolume(value)+3}" text-anchor="start">${volumeLabel(value)}</text>`).join("");
+
+  const vertical=xTicks.map(period=>`<line class="weekGrid" x1="${x(period)}" y1="${top}" x2="${x(period)}" y2="${height-bottom}"></line>
+    <text class="axisText" x="${x(period)}" y="${height-bottom+18}" text-anchor="middle">${daily?period:"W"+period}</text>`).join("");
+
+  const periodName=period=>daily?`Day ${period} (Week ${Math.ceil(period/7)}, day ${((period-1)%7)+1})`:`Week ${period}`;
+  const feelingSeries=(()=>{
+    const coordinates=feelingPoints.map(point=>`${x(point.period)},${yFeeling(point.value)}`).join(" ");
+    const line=feelingPoints.length>1?`<polyline class="seriesLine" stroke="var(--feeling)" points="${coordinates}"></polyline>`:"";
+    const circles=feelingPoints.map(point=>{
+      const title=`${periodName(point.period)} feeling: ${averageLabel(point.value)} from ${point.count} ${point.count===1?"entry":"entries"}`;
+      return `<circle class="seriesPoint" stroke="var(--feeling)" cx="${x(point.period)}" cy="${yFeeling(point.value)}" r="4.5" tabindex="0" aria-label="${esc(title)}"><title>${esc(title)}</title></circle>`;
+    }).join("");
+    return line+circles;
+  })();
+
+  const volumeSeries=(points,color,label,unit)=>{
+    const coordinates=points.map(point=>`${x(point.period)},${yVolume(point.value)}`).join(" ");
+    const line=points.length>1?`<polyline class="seriesLine" stroke="${color}" points="${coordinates}"></polyline>`:"";
+    const circles=points.map(point=>{
+      const title=`${periodName(point.period)} ${label}: ${volumeLabel(point.value)} ${unit}`;
+      return `<circle class="seriesPoint" stroke="${color}" cx="${x(point.period)}" cy="${yVolume(point.value)}" r="3.8" tabindex="0" aria-label="${esc(title)}"><title>${esc(title)}</title></circle>`;
+    }).join("");
+    return line+circles;
+  };
+  const volumes=volumeMode==="time"
+    ?volumeSeries(sandalPoints,"var(--sandal)","Sandal time","min")+volumeSeries(brooksPoints,"var(--brooks)","Brooks time","min")
+    :volumeSeries(distancePoints,"var(--done)","Distance","mi");
+
+  const empty=feelingPoints.length||volumePoints.length?"":`<text class="empty" x="${left+plotWidth/2}" y="${top+plotHeight/2}" text-anchor="middle">No feeling or volume entries yet</text>`;
+  const axisTitle=daily?"PROGRAM DAY":"PROGRAM WEEK";
+  const volumeUnit=volumeMode==="time"?"MIN":"MI";
+  const aria=`${daily?"Daily":"Weekly"} feeling and running ${volumeMode} chart`;
+
+  document.getElementById("chart").innerHTML=`<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${aria}">
+    ${horizontal}${vertical}${volumeAxis}${feelingSeries}${volumes}${empty}
+    <text class="axisTitle" x="${width-3}" y="${top-7}" text-anchor="end">${volumeUnit}</text>
+    <text class="axisTitle" x="${left+plotWidth/2}" y="${height-3}" text-anchor="middle">${axisTitle}</text>
+  </svg>`;
+
+  const volumeName=volumeMode==="time"?"TIME":"DISTANCE";
+  document.getElementById("chartTitle").textContent=`${daily?"DAILY":"WEEKLY"} FEELING + ${volumeName}`;
+  document.getElementById("legend").innerHTML=`<span class="legendItem"><i class="legendSwatch" style="background:var(--feeling)"></i>Feeling</span>`+(volumeMode==="time"?`<span class="legendItem"><i class="legendSwatch" style="background:var(--sandal)"></i>Sandal time</span><span class="legendItem"><i class="legendSwatch" style="background:var(--brooks)"></i>Brooks time</span>`:`<span class="legendItem"><i class="legendSwatch" style="background:var(--done)"></i>Distance</span>`);
+  document.getElementById("entryCount").textContent=feelings.length;
+  document.getElementById("periodCount").textContent=feelingPoints.length;
+  document.getElementById("periodLabel").textContent=daily?"DAYS LOGGED":"WEEKS LOGGED";
+  document.querySelectorAll("[data-view]").forEach(button=>{
+    const active=button.dataset.view===view;
+    button.classList.toggle("on",active);
+    button.setAttribute("aria-pressed",String(active));
+  });
+  document.querySelectorAll("[data-volume]").forEach(button=>{
+    const active=button.dataset.volume===volumeMode;
+    button.classList.toggle("on",active);
+    button.setAttribute("aria-pressed",String(active));
+  });
+}
+
+document.addEventListener("click",event=>{
+  const button=event.target.closest("[data-view],[data-volume]");
+  if(!button) return;
+  if(button.dataset.view) view=button.dataset.view;
+  if(button.dataset.volume) volumeMode=button.dataset.volume;
+  render();
+});
+window.addEventListener("pageshow",render);
+window.addEventListener("storage",render);
+render();
+</script>
+</body>
+</html>
