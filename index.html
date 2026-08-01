@@ -75,14 +75,27 @@
   .runCheck .box{margin-top:0}
   .runToggle{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:6px;padding:4px;text-align:left}
   .run .runname{margin-bottom:0}
-  .runBody{padding:0 16px 4px 70px}
+  .runBody{padding:0 16px 4px 50px}
   .box{flex:0 0 auto;width:20px;height:20px;margin-top:2px;border-radius:5px;border:1.5px solid var(--dim);
        display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--bg)}
   .run.done .box{background:var(--done);border-color:var(--done)}
   .runname{font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.04em;margin-bottom:6px;color:var(--accent,var(--text))}
   .run.done .runname{text-decoration:line-through}
-  .feelLog{padding:0 16px 12px 70px}
+  .feelLog{padding:0 16px 12px 50px}
   .feelLog.workoutLog{padding:4px 0 0 0;border-bottom:none}
+  .offDay{border-bottom:1px solid var(--line);background:rgba(38,48,57,.38)}
+  .offDay:last-child{border-bottom:none}
+  .offDay.done{opacity:.5}
+  .offDayHead{display:flex;align-items:center;gap:10px;padding:10px 16px 8px 16px}
+  .offDayCheck{flex:0 0 auto}
+  .offDayCheck .box{margin-top:0}
+  .offDay.done .box{background:var(--done);border-color:var(--done)}
+  .offDayToggle{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:6px;padding:4px;text-align:left}
+  .offDayLabel{flex:1 1 auto;min-width:0}
+  .offDayTitle{font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.04em;color:var(--muted)}
+  .offDay.done .offDayTitle{text-decoration:line-through}
+  .offDayContext{padding:0 16px 0 50px;color:var(--dim);font:500 9px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  .feelLog.offDayLog{padding:0 16px 12px 50px}
   .feelBtns{display:flex;gap:6px;width:210px;max-width:100%;margin-top:8px}
   .feelBtn{flex:1 1 0;min-width:0;padding:7px 6px;border:1px solid var(--line);border-radius:4px;color:var(--muted);font-size:11px;font-weight:600}
   .feelBtn.on{background:rgba(227,165,82,.15);border-color:var(--sandal);color:var(--sandal)}
@@ -216,7 +229,7 @@
       <span class="eyebrow" id="noteModalTitle">NOTE</span>
       <button class="solid" id="noteDone">Done</button>
     </div>
-    <textarea class="noteText" id="noteText" placeholder="brief notes on the run/workout" autocomplete="off"></textarea>
+    <textarea class="noteText" id="noteText" placeholder="brief notes" autocomplete="off"></textarea>
   </div>
 </div>
 
@@ -253,10 +266,10 @@ const GH_KEYS={
   branch:"sandal-transition-github-branch"
 };
 const SNAPSHOT_KEYS=[KEY,GH_KEYS.owner,GH_KEYS.repo,GH_KEYS.branch];
-const emptyState=()=>({done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{},sessionHistory:[]});
+const emptyState=()=>({done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{},offDayDone:{},offDayFeels:{},offDayNotes:{},sessionHistory:[]});
 let st=emptyState();
 let openWeek=null;
-let runOpen={}, workoutOpen={};
+let runOpen={}, workoutOpen={}, offDayOpen={};
 
 let storageOK=true;
 function load(){
@@ -301,6 +314,23 @@ const feelLog=(type,k,selected,note,extraClass="")=>`<div class="feelLog ${extra
   <button class="noteBtn ${note?"has":""}" data-note-type="${type}" data-note-key="${k}" aria-label="${note?"Edit note":"Add note"}">${note?esc(preview(note)):"+ note"}</button>
 </div>`;
 const preview=n=>String(n).replace(/\s+/g," ").trim();
+const feelBucket=type=>type==="run"?st.runFeels:type==="workout"?st.workoutFeels:st.offDayFeels;
+const noteBucket=type=>type==="run"?st.runNotes:type==="workout"?st.workoutNotes:st.offDayNotes;
+const offDayLog=(wn,slot,context)=>{
+  const k=`${wn}-${slot}`;
+  const open=!!offDayOpen[k];
+  const done=!!st.offDayDone[k];
+  return `<div class="offDay ${done?"done":""}">
+    <div class="offDayHead">
+      <button class="offDayCheck" data-off-day="${k}" aria-pressed="${done}" aria-label="Mark off day ${done?"not done":"done"}"><span class="box">${done?"✓":""}</span></button>
+      <button class="offDayToggle" data-off-day-open="${k}" aria-expanded="${open}">
+        <span class="offDayLabel"><span class="offDayTitle">OFF DAY</span></span>
+        <span class="caret">${open?"▾":"▸"}</span>
+      </button>
+    </div>
+    ${open?`<div class="offDayContext">${context}</div>${feelLog("off",k,st.offDayFeels[k],st.offDayNotes[k],"offDayLog")}`:""}
+  </div>`;
+};
 
 function sessionSnapshot(wn,i,completedAt=new Date().toISOString()){
   const exercises=strengthRowsFor(wn,i);
@@ -400,6 +430,8 @@ function render(){
               </span>
             </div>`).join("")+`${priorSession?`<p class="setHint">Faded values are from the previous Workout ${letter}. Tap one to use and save it.</p>`:""}${feelLog("workout",wk,st.workoutFeels[wk],st.workoutNotes[wk],"workoutLog")}</div>`:""}
         </div>`;
+        const recovery=offDayLog(w.n,i,i<2?`day after Run ${i+1}`:"day after Run 3");
+        const secondRecovery=i===2?offDayLog(w.n,3,"second day after Run 3"):"";
         return `<div class="day" style="--accent:var(--run${i+1})"><div class="run ${d?"done":""}">
           <button class="runCheck" data-w="${w.n}" data-i="${i}" aria-pressed="${d}" aria-label="Mark run ${i+1} ${d?"not done":"done"}"><span class="box">${d?"✓":""}</span></button>
           <button class="runToggle" data-run-open="${rk}" aria-expanded="${ro}">
@@ -408,7 +440,7 @@ function render(){
         </div>${ro?`<div class="runBody">
           <span class="line"><span class="tag" style="color:var(--sandal)">SANDALS</span><span class="val">${r[0]}</span></span>
           <span class="line"><span class="tag" style="color:var(--brooks)">BROOKS</span><span class="val">${r[1]}</span></span>
-        </div>${feelLog("run",rk,st.runFeels[rk],st.runNotes[rk])}`:""}${strength}</div>`;
+        </div>${feelLog("run",rk,st.runFeels[rk],st.runNotes[rk])}`:""}${strength}</div>${recovery}${secondRecovery}`;
       }).join("")+`</div>`;
 
       if(done){
@@ -440,14 +472,14 @@ function render(){
 }
 
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-w],[data-open],[data-feel],[data-repeat],[data-workout],[data-run-open],[data-workout-open],[data-log-type],[data-note-type]");
+  const t=e.target.closest("[data-w],[data-open],[data-feel],[data-repeat],[data-workout],[data-off-day],[data-run-open],[data-workout-open],[data-off-day-open],[data-log-type],[data-note-type]");
   if(!t) return;
   if(t.dataset.noteType){ openNote(t.dataset.noteType,t.dataset.noteKey); return; }
   if(t.dataset.w!==undefined && t.dataset.i!==undefined){
     const k=t.dataset.w+"-"+t.dataset.i;
     if(st.done[k]) delete st.done[k]; else st.done[k]=true;
   } else if(t.dataset.logType){
-    const bucket=t.dataset.logType==="run"?st.runFeels:st.workoutFeels;
+    const bucket=feelBucket(t.dataset.logType);
     const k=t.dataset.logKey, v=t.dataset.logValue;
     if(bucket[k]===v) delete bucket[k]; else bucket[k]=v;
   } else if(t.dataset.workout){
@@ -462,6 +494,9 @@ document.addEventListener("click",e=>{
       recordCompletedSession(wn,i);
       workoutOpen[k]=false;
     }
+  } else if(t.dataset.offDay){
+    const k=t.dataset.offDay;
+    if(st.offDayDone[k]) delete st.offDayDone[k]; else st.offDayDone[k]=true;
   } else if(t.dataset.runOpen){
     const k=t.dataset.runOpen;
     runOpen[k]=!runOpen[k];
@@ -469,6 +504,10 @@ document.addEventListener("click",e=>{
   } else if(t.dataset.workoutOpen){
     const k=t.dataset.workoutOpen;
     workoutOpen[k]=!workoutOpen[k];
+    render(); return;
+  } else if(t.dataset.offDayOpen){
+    const k=t.dataset.offDayOpen;
+    offDayOpen[k]=!offDayOpen[k];
     render(); return;
   } else if(t.dataset.open){
     const n=+t.dataset.open;
@@ -495,10 +534,14 @@ document.addEventListener("click",e=>{
     Object.keys(st.workoutOpen).forEach(k=>{ if(k.startsWith(n+"-")) delete st.workoutOpen[k]; });
     Object.keys(runOpen).forEach(k=>{ if(k.startsWith(n+"-")) delete runOpen[k]; });
     Object.keys(workoutOpen).forEach(k=>{ if(k.startsWith(n+"-")) delete workoutOpen[k]; });
+    Object.keys(offDayOpen).forEach(k=>{ if(k.startsWith(n+"-")) delete offDayOpen[k]; });
     Object.keys(st.runFeels).forEach(k=>{ if(k.startsWith(n+"-")) delete st.runFeels[k]; });
     Object.keys(st.runNotes).forEach(k=>{ if(k.startsWith(n+"-")) delete st.runNotes[k]; });
     Object.keys(st.workoutFeels).forEach(k=>{ if(k.startsWith(n+"-")) delete st.workoutFeels[k]; });
     Object.keys(st.workoutNotes).forEach(k=>{ if(k.startsWith(n+"-")) delete st.workoutNotes[k]; });
+    Object.keys(st.offDayDone).forEach(k=>{ if(k.startsWith(n+"-")) delete st.offDayDone[k]; });
+    Object.keys(st.offDayFeels).forEach(k=>{ if(k.startsWith(n+"-")) delete st.offDayFeels[k]; });
+    Object.keys(st.offDayNotes).forEach(k=>{ if(k.startsWith(n+"-")) delete st.offDayNotes[k]; });
     delete st.feel[n];
     st.repeats[n]=(st.repeats[n]||0)+1;
   }
@@ -601,14 +644,14 @@ document.addEventListener("focusout",e=>{
 });
 
 // --- note modal ---------------------------------------------------------
-// Same storage as before: st.runNotes[runKey] / st.workoutNotes[workoutKey].
+// Notes share the same modal while remaining separate by entry type.
 let noteCtx=null;
 const noteModal=document.getElementById("noteModal");
 const noteText=document.getElementById("noteText");
 
 function writeNote(){
   if(!noteCtx) return;
-  const bucket=noteCtx.type==="run"?st.runNotes:st.workoutNotes;
+  const bucket=noteBucket(noteCtx.type);
   if(noteText.value) bucket[noteCtx.k]=noteText.value; else delete bucket[noteCtx.k];
 }
 // Keep the sheet inside the visual viewport so the iOS keyboard never covers it.
@@ -621,8 +664,10 @@ function fitViewport(){
 }
 function openNote(type,k){
   noteCtx={type,k};
-  const bucket=type==="run"?st.runNotes:st.workoutNotes;
-  document.getElementById("noteModalTitle").textContent=type==="run"?"RUN NOTE":"WORKOUT NOTE";
+  const bucket=noteBucket(type);
+  const label=type==="run"?"RUN":type==="workout"?"WORKOUT":"OFF DAY";
+  document.getElementById("noteModalTitle").textContent=`${label} NOTE`;
+  noteText.placeholder=type==="off"?"How do you feel today?":"Brief notes on the run/workout";
   noteText.value=bucket[k]||"";
   noteModal.hidden=false;
   document.body.style.overflow="hidden";
@@ -774,7 +819,7 @@ document.getElementById("saveGithub").addEventListener("click",async()=>{
 document.getElementById("reset").addEventListener("click",()=>{
   if(confirm("Erase all progress?")){
     st=emptyState();
-    runOpen={}; workoutOpen={};
+    runOpen={}; workoutOpen={}; offDayOpen={};
     save(); render();
   }
 });
