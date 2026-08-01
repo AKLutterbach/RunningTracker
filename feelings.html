@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#161C22">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Feeling Trends · Sandal Transition</title>
+<title>Feeling Trends · Run Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -183,12 +183,16 @@ function aggregateVolume(entries,mode,metric){
   return [...groups.entries()].sort((a,b)=>a[0]-b[0]).map(([period,value])=>({period,value}));
 }
 
-function niceMax(values){
+function volumeCeiling(values){
   const max=Math.max(0,...values);
   if(max<=0) return 1;
-  const power=Math.pow(10,Math.floor(Math.log10(max)));
-  const fraction=max/power;
-  return (fraction<=1?1:fraction<=2?2:fraction<=5?5:10)*power;
+  const padded=max*1.15;
+  const roughStep=padded/4;
+  const power=Math.pow(10,Math.floor(Math.log10(roughStep)));
+  const fraction=roughStep/power;
+  const niceFraction=fraction<=1?1:fraction<=2?2:fraction<=2.5?2.5:fraction<=5?5:10;
+  const step=niceFraction*power;
+  return Math.ceil(padded/step)*step;
 }
 
 const volumeLabel=value=>Number.isInteger(value)?String(value):value.toFixed(value<10?1:0);
@@ -206,7 +210,7 @@ function render(){
   const domainMax=daily?56:8;
   const x=period=>left+((period-1)/(domainMax-1))*plotWidth;
   const yFeeling=value=>top+((value-1)/2)*plotHeight;
-  const volumeMax=niceMax(volumePoints.map(point=>point.value));
+  const volumeMax=volumeCeiling(volumePoints.map(point=>point.value));
   const yVolume=value=>top+plotHeight-(value/volumeMax)*plotHeight;
   const xTicks=daily?[1,8,15,22,29,36,43,50,56]:[1,2,3,4,5,6,7,8];
 
@@ -216,7 +220,7 @@ function render(){
       <text class="axisText" x="${left-8}" y="${yFeeling(value)+3}" text-anchor="end">${label}</text>`;
   }).join("");
 
-  const volumeAxis=[volumeMax,volumeMax/2,0].map(value=>`<text class="axisText" x="${width-right+7}" y="${yVolume(value)+3}" text-anchor="start">${volumeLabel(value)}</text>`).join("");
+  const volumeAxis=[volumeMax,volumeMax*.75,volumeMax*.5,volumeMax*.25,0].map(value=>`<text class="axisText" x="${width-right+7}" y="${yVolume(value)+3}" text-anchor="start">${volumeLabel(value)}</text>`).join("");
 
   const vertical=xTicks.map(period=>`<line class="weekGrid" x1="${x(period)}" y1="${top}" x2="${x(period)}" y2="${height-bottom}"></line>
     <text class="axisText" x="${x(period)}" y="${height-bottom+18}" text-anchor="middle">${daily?period:"W"+period}</text>`).join("");
