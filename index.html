@@ -78,7 +78,7 @@
   .runToggle{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:6px;padding:4px;text-align:left}
   .run .runname{margin-bottom:0}
   .runBody{padding:0 16px 4px 50px}
-  .runMetrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:320px;max-width:100%;margin-top:10px}
+  .runMetrics{width:104px;max-width:100%;margin-top:10px}
   .runMetric{display:block;min-width:0;color:var(--dim);font:500 8px var(--mono);letter-spacing:.07em}
   .runMetricInput{display:block;width:100%;height:34px;margin-top:4px;padding:3px 5px;border:1px solid var(--line);border-radius:4px;background:var(--surfaceHi);color:var(--text);font:500 16px var(--mono);text-align:center;-moz-appearance:textfield}
   .runMetricInput::-webkit-inner-spin-button,.runMetricInput::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
@@ -129,6 +129,7 @@
   .line{display:flex;gap:8px;align-items:baseline;margin-bottom:4px}
   .tag{font-family:var(--mono);font-size:9px;letter-spacing:.1em;width:52px;flex:0 0 52px}
   .val{font-family:var(--mono);font-size:12px}
+  .runMinutes{color:var(--dim);font:500 9px var(--mono);white-space:nowrap}
   .wkt{font-size:11px;color:var(--muted);line-height:1.4}
   .wkt em{font-style:normal;color:var(--dim);display:block}
   .workout{padding-top:2px}
@@ -166,8 +167,6 @@
   .note p{font-size:12px;line-height:1.6;margin-top:8px}
   .note p:first-of-type{margin-top:0}
   .setHint{color:var(--dim);font-size:10px!important;margin-top:10px!important}
-  .foot{text-align:center;margin-top:24px}
-  .foot button{color:var(--dim);font-size:11px}
   @media (max-width:420px){
     .strength{padding-left:16px}
     .strengthRow{gap:6px}
@@ -182,11 +181,11 @@
   <div class="topbar">
     <div>
       <h1>RUN TRACKER</h1>
-      <div class="sub">Sandal minutes per week. Everything else serves that.</div>
+      <div class="sub">Sandal minutes per week.<br>Everything else serves that.</div>
     </div>
     <div class="topActions">
       <div class="savedState" id="saved">saved</div>
-      <a class="trendButton" href="feelings.html" aria-label="Open feeling trends" title="Feeling trends">
+      <a class="trendButton" href="feelings.html" aria-label="Open feel trends" title="Feel trends">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16"></path><path d="m7 15 4-4 3 2 5-6"></path></svg>
       </a>
       <button class="dataMenuButton" id="dataMenuButton" type="button" aria-label="Open data menu" aria-controls="dataMenu" aria-expanded="false" title="Data and export">
@@ -231,7 +230,6 @@
     <p style="font-family:var(--mono);font-size:11px;line-height:1.8">walk 5 (sandals) → sandal block → switch → brooks block → walk 5 → strength</p>
   </div>
 
-  <div class="foot"><button id="reset">Clear all progress</button></div>
 </div>
 
 <div class="modal" id="noteModal" hidden>
@@ -268,6 +266,10 @@ const WEEKS=[
 // A/B alternate on every run and carry across the week boundary:
 // wk1 A B A · wk2 B A B · wk3 A B A ...
 const workoutFor=(wn,i)=>((wn-1)*3+i)%2?"B":"A";
+const protocolMinutes=protocol=>{
+  const values=String(protocol).match(/\d+(?:\.\d+)?/g)||[];
+  return values.length>=3?Number(values[0])+Number(values[2]):0;
+};
 
 const KEY="sandal-transition-tracker";
 const GH_KEYS={
@@ -450,12 +452,10 @@ function render(){
             <span class="runname" style="flex:1;min-width:0">RUN ${i+1}</span><span class="caret">${ro?"▾":"▸"}</span>
           </button>
         </div>${ro?`<div class="runBody">
-          <span class="line"><span class="tag" style="color:var(--sandal)">SANDALS</span><span class="val">${r[0]}</span></span>
-          <span class="line"><span class="tag" style="color:var(--brooks)">BROOKS</span><span class="val">${r[1]}</span></span>
+          <span class="line"><span class="tag" style="color:var(--sandal)">SANDALS</span><span class="val">${r[0]}</span><span class="runMinutes">${protocolMinutes(r[0])} min</span></span>
+          <span class="line"><span class="tag" style="color:var(--brooks)">BROOKS</span><span class="val">${r[1]}</span><span class="runMinutes">${protocolMinutes(r[1])} min</span></span>
           <div class="runMetrics">
             <label class="runMetric">DISTANCE (MI)<input class="runMetricInput" type="number" min="0" step="0.01" inputmode="decimal" data-run-key="${rk}" data-run-metric="distance" value="${esc(rm.distance??"")}" placeholder="0.00" aria-label="Run ${i+1} distance in miles"></label>
-            <label class="runMetric">SANDAL (MIN)<input class="runMetricInput" type="number" min="0" step="0.1" inputmode="decimal" data-run-key="${rk}" data-run-metric="sandalMinutes" value="${esc(rm.sandalMinutes??"")}" placeholder="0" aria-label="Run ${i+1} sandal minutes"></label>
-            <label class="runMetric">BROOKS (MIN)<input class="runMetricInput" type="number" min="0" step="0.1" inputmode="decimal" data-run-key="${rk}" data-run-metric="brooksMinutes" value="${esc(rm.brooksMinutes??"")}" placeholder="0" aria-label="Run ${i+1} Brooks minutes"></label>
           </div>
         </div>${feelLog("run",rk,st.runFeels[rk],st.runNotes[rk])}`:""}${strength}</div>${recovery}${secondRecovery}`;
       }).join("")+`</div>`;
@@ -838,14 +838,6 @@ document.getElementById("saveGithub").addEventListener("click",async()=>{
     setDataStatus(`Committed data.json successfully${shortSha}.`,"ok");
   }catch(e){setDataStatus(`GitHub save failed: ${e.message}`,"error");}
   finally{button.disabled=false;label.textContent="Save to GitHub";}
-});
-
-document.getElementById("reset").addEventListener("click",()=>{
-  if(confirm("Erase all progress?")){
-    st=emptyState();
-    runOpen={}; workoutOpen={}; offDayOpen={};
-    save(); render();
-  }
 });
 
 load(); render();
