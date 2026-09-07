@@ -166,7 +166,6 @@
   .note{padding:16px;margin-top:8px}
   .note p{font-size:12px;line-height:1.6;margin-top:8px}
   .note p:first-of-type{margin-top:0}
-  .setHint{color:var(--dim);font-size:10px!important;margin-top:10px!important}
   .entryDelete{flex:0 0 auto;width:26px;height:26px;display:flex;align-items:center;justify-content:center;
        border-radius:5px;color:var(--dim);font-size:13px}
   .entryDelete:hover,.entryDelete:active{color:#D58B82;background:var(--surfaceHi)}
@@ -653,7 +652,7 @@ function workoutHtml(ref,options){
           const previous=previousSetValue(prior,ex,si);
           const aria=`${label} ${ex} set ${si+1}${previous?`, previous ${previous}`:""}`;
           const enterHint=ei===exercises.length-1&&si===2?"done":"next";
-          return `<input class="setInput" type="text" data-set="${k}" data-wkey="${key}" data-previous="${esc(previous)}" value="${esc(st.sets[k]??"")}" placeholder="${esc(previous||"-")}" inputmode="numeric" pattern="[0-9]*" enterkeyhint="${enterHint}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="${esc(aria)}">`;
+          return `<input class="setInput" type="text" data-set="${k}" data-wkey="${key}" data-ei="${ei}" data-si="${si}" data-previous="${esc(previous)}" value="${esc(st.sets[k]??"")}" placeholder="${esc(previous||"-")}" inputmode="numeric" pattern="[0-9]*" enterkeyhint="${enterHint}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="${esc(aria)}">`;
         }).join("")}
       </span>
     </div>`).join("");
@@ -667,7 +666,7 @@ function workoutHtml(ref,options){
       </button>
       ${opts.deletable?`<button class="entryDelete" data-delete-entry="${key}" aria-label="Delete workout entry" title="Delete">✕</button>`:""}
     </div>
-    ${open?`<div class="strength">${opts.stamp?`<div class="entryDate">${esc(opts.stamp)}</div>`:""}${typeRow}${rows}${prior?`<p class="setHint">Faded values are from the previous Workout ${letter}. Tap one to use and save it.</p>`:""}${feelLog("workout",key,st.workoutFeels[key],st.workoutNotes[key],"workoutLog")}</div>`:""}
+    ${open?`<div class="strength">${opts.stamp?`<div class="entryDate">${esc(opts.stamp)}</div>`:""}${typeRow}${rows}${feelLog("workout",key,st.workoutFeels[key],st.workoutNotes[key],"workoutLog")}</div>`:""}
   </div>`;
 }
 
@@ -887,7 +886,14 @@ const repNext=document.getElementById("repNext");
 const repDone=document.getElementById("repDone");
 const repPosition=document.getElementById("repPosition");
 let activeRep=null;
-const repFields=()=>Array.from(document.querySelectorAll(".setInput"));
+// Column-major circuit order for one workout's set boxes: every exercise's
+// Set 1 box top-to-bottom, then every Set 2 box, then every Set 3 box —
+// explicitly sorted by (set index, exercise index), never by DOM/tab order.
+function circuitFields(wkey){
+  return Array.from(document.querySelectorAll(".setInput"))
+    .filter(el=>el.dataset.wkey===wkey)
+    .sort((a,b)=>(Number(a.dataset.si)-Number(b.dataset.si))||(Number(a.dataset.ei)-Number(b.dataset.ei)));
+}
 function fitRepNav(){
   if(repNav.hidden) return;
   const vv=window.visualViewport;
@@ -896,9 +902,10 @@ function fitRepNav(){
   repNav.style.top=Math.max(8,visibleBottom-repNav.offsetHeight-8)+"px";
 }
 function updateRepNav(){
-  const fields=repFields(), index=fields.indexOf(activeRep);
+  const fields=activeRep?circuitFields(activeRep.dataset.wkey):[];
+  const index=fields.indexOf(activeRep);
   repBack.disabled=index<=0;
-  repNext.disabled=index<0||index>=fields.length-1;
+  repNext.disabled=index<0;
   repPosition.textContent=index>=0?`${index+1} / ${fields.length}`:"";
   requestAnimationFrame(fitRepNav);
 }
@@ -912,10 +919,29 @@ function hideRepNav(){
   repNav.style.top=""; repNav.style.bottom="";
   activeRep=null;
 }
+// Next: skip forward past boxes that already hold a value, landing on the
+// next empty one in circuit order; dismiss the keyboard once none remain.
+// Back: step to the immediately preceding box (no skipping), so a value
+// just auto-filled or typed can still be corrected.
 function moveRep(direction){
-  const fields=repFields(), index=fields.indexOf(activeRep);
-  const target=fields[index+direction];
-  if(!target) return;
+  if(!activeRep) return;
+  const fields=circuitFields(activeRep.dataset.wkey);
+  const index=fields.indexOf(activeRep);
+  if(index<0) return;
+  let target=null;
+  if(direction>0){
+    for(let i=index+1;i<fields.length;i++){
+      if(!fields[i].value){ target=fields[i]; break; }
+    }
+  } else {
+    target=fields[index-1]||null;
+  }
+  if(!target){
+    if(direction>0) finishRep();
+    return;
+  }
+  // Focus synchronously in the event handler — on iOS Safari, deferring
+  // (rAF, timeout, promise) drops the keyboard and it won't reliably reopen.
   target.focus({preventScroll:true});
   target.scrollIntoView({block:"center",inline:"nearest"});
   showRepNav(target);
@@ -1045,8 +1071,7 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Escape"){closeNote();closeDataMenu();}
   if(e.key==="Enter"&&e.target.matches&&e.target.matches("[data-set]")){
     e.preventDefault();
-    const fields=repFields(), index=fields.indexOf(e.target);
-    if(index>=0&&index<fields.length-1) moveRep(1); else finishRep();
+    moveRep(1);
   }
 });
 
