@@ -52,7 +52,7 @@
   .card{background:var(--surface);border:1px solid var(--line);border-radius:8px}
   .ridge{padding:16px;margin:20px 0}
   .eyebrow{color:var(--muted);font-size:10px;letter-spacing:.14em;margin-bottom:12px}
-  .bars{display:flex;align-items:flex-end;gap:6px;height:56px}
+  .bars{display:flex;align-items:flex-end;gap:6px;height:92px}
   .bars>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
   .bars i{position:relative;display:block;overflow:hidden;border-radius:2px;background:var(--surfaceHi)}
   .bars i.cur{border:1.5px solid var(--sandal)}
@@ -60,13 +60,41 @@
   .nums{display:flex;gap:6px;margin-top:8px}
   .nums span{flex:1;text-align:center;font-family:var(--mono);font-size:10px;color:var(--dim)}
   .nums span.cur{color:var(--sandal)}
-  .weeks{display:flex;flex-direction:column;gap:8px}
-  .wk{overflow:hidden}
-  .wkhead{width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;text-align:left}
+  .weeks{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+  .wkTile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+       min-width:0;padding:11px 2px;border:1px solid var(--line);border-radius:8px;background:var(--surface);
+       transition:border-color .22s ease,background .22s ease,box-shadow .28s ease}
+  .wkTileName{font-family:var(--display);font-size:17px;font-weight:700;letter-spacing:.02em;line-height:1;color:var(--muted);
+       transition:color .22s ease}
+  .wkTileCount{font-family:var(--mono);font-size:9px;line-height:1;color:var(--dim);transition:color .22s ease}
+  .wkTileRound{position:absolute;top:3px;right:4px;font:500 7px var(--mono);color:var(--dim)}
+  .wkTile.done .wkTileName,.wkTile.done .wkTileCount{color:var(--done)}
+  .wkTile.cur{border-color:rgba(227,165,82,.5)}
+  .wkTile.cur .wkTileName{color:var(--sandal)}
+  .wkTile:hover{border-color:var(--dim)}
+  .wkTile.sel{background:var(--surfaceHi);border-color:var(--sandal);
+       box-shadow:0 0 0 1px rgba(227,165,82,.3),0 8px 22px rgba(0,0,0,.34)}
+  .wkTile.sel .wkTileName{color:var(--sandal)}
+  .wkTile.sel::after{content:"";position:absolute;left:50%;bottom:-5px;width:8px;height:8px;
+       transform:translateX(-50%) rotate(45deg);background:var(--surfaceHi);
+       border-right:1px solid var(--sandal);border-bottom:1px solid var(--sandal)}
+  /* The panel is a full-width grid row that grows from 0fr; the negative
+     block margin cancels the grid gap while it is closed. */
+  .wkPanel{grid-column:1/-1;align-self:start;display:grid;grid-template-rows:0fr;margin-block:-8px;
+       transition:grid-template-rows .44s cubic-bezier(.16,1,.3,1),margin-block .44s cubic-bezier(.16,1,.3,1)}
+  .wkPanel.open{grid-template-rows:1fr;margin-block:0}
+  .wkPanelInner{min-height:0;overflow:hidden}
+  .wkPanelCard{opacity:0;transform:translateY(-10px);
+       transition:opacity .34s ease .06s,transform .46s cubic-bezier(.16,1,.3,1) .04s}
+  .wkPanel.open .wkPanelCard{opacity:1;transform:none}
+  .wkPanelHead{display:flex;align-items:center;gap:10px;padding:13px 16px 12px}
+  .wkClose{margin-left:2px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+       border-radius:6px;color:var(--muted);font-size:13px}
+  .wkClose:hover,.wkClose:active{color:var(--sandal);background:var(--surfaceHi)}
   .wkname{font-family:var(--display);font-size:22px;font-weight:600;line-height:1}
   .wkname.cur{color:var(--sandal)}
   .round{font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:12px}
-  .count{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .count{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:auto}
   .caret{color:var(--muted);font-size:18px;font-weight:700;line-height:1;margin-left:8px}
   .runs{border-top:1px solid var(--line)}
   .day{border-bottom:1px solid var(--line)}
@@ -225,6 +253,10 @@
   .protoInput:focus{outline:1.5px solid var(--sandal);border-color:var(--sandal)}
   .protoActions{margin-top:10px}
   @media (max-width:420px){
+    .weeks{gap:6px}
+    .wkPanel{margin-block:-6px}
+    .wkTile{padding:10px 1px}
+    .wkTileName{font-size:15px}
     .strength{padding-left:16px}
     .strengthRow{gap:6px}
     .exercise{min-width:0}
@@ -406,9 +438,51 @@ function save(silent){
   }
 }
 
+const GRID_COLS=6;
 const wkDone=w=>w.runs.every((_,i)=>st.done[w.n+"-"+i]);
 const wkCount=w=>w.runs.filter((_,i)=>st.done[w.n+"-"+i]).length;
-const current=()=>WEEKS.find(w=>!wkDone(w))||WEEKS[7];
+const current=()=>WEEKS.find(w=>!wkDone(w))||WEEKS[WEEKS.length-1];
+// openWeek: null = follow the current week, -1 = everything closed.
+function openWeekNumber(){
+  if(openWeek===null) return current().n;
+  return WEEKS.some(w=>w.n===openWeek)?openWeek:null;
+}
+const reducedMotion=()=>!!(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+const canAnimatePanel=()=>!reducedMotion()&&!!(window.CSS&&CSS.supports&&CSS.supports("grid-template-rows","0fr"));
+// Grow the freshly rendered panel from nothing. Two frames: the first lets the
+// collapsed state resolve, the second flips it so the transition actually runs.
+function openPanel(){
+  const node=document.getElementById("wkPanel");
+  if(!node) return;
+  if(!canAnimatePanel()){ node.classList.add("open"); return; }
+  requestAnimationFrame(()=>requestAnimationFrame(()=>node.classList.add("open")));
+}
+// Collapse the panel that is on screen, then hand back to the caller. The
+// timeout is the safety net for a transitionend that never arrives.
+function closePanel(done){
+  const node=document.getElementById("wkPanel");
+  if(!node||!node.classList.contains("open")||!canAnimatePanel()){ done(); return; }
+  let settled=false;
+  const finish=()=>{
+    if(settled) return;
+    settled=true;
+    node.removeEventListener("transitionend",onEnd);
+    done();
+  };
+  const onEnd=e=>{ if(e.target===node&&e.propertyName==="grid-template-rows") finish(); };
+  node.addEventListener("transitionend",onEnd);
+  setTimeout(finish,520);
+  node.classList.remove("open");
+}
+function revealWeek(n){
+  openWeek=n;
+  render(true);
+  openPanel();
+  requestAnimationFrame(()=>{
+    const sel=document.querySelector(".wkTile.sel");
+    if(sel) sel.scrollIntoView({block:"nearest",behavior:reducedMotion()?"auto":"smooth"});
+  });
+}
 const parts=s=>s.split(/\s+[^A-Za-z0-9]+\s+/);
 const strengthRowsFor=letter=>[...parts(WORKOUTS[letter]||WORKOUTS.A),...parts(ACC)];
 
@@ -833,10 +907,20 @@ function protocolHtml(w){
   </div>`;
 }
 
+// The chart zooms to whatever range the weeks actually cover, so raising a
+// protocol past the old hard-coded 25-minute ceiling keeps separating the bars.
+function barHeight(){
+  const values=WEEKS.map(w=>weekSandalMinutes(w.n));
+  const hi=Math.max(...values), low=Math.min(...values);
+  const floor=Math.max(0,low-Math.max(1,(hi-low)*0.4));
+  const span=(hi-floor)||1;
+  return v=>Math.max(6,Math.min(100,((v-floor)/span)*100));
+}
 function renderBars(){
   const cur=current();
+  const height=barHeight();
   document.getElementById("bars").innerHTML=WEEKS.map(w=>{
-    const pct=Math.max(6,Math.min(100,((weekSandalMinutes(w.n)-16)/9)*100));
+    const pct=height(weekSandalMinutes(w.n));
     const fill=(wkCount(w)/w.runs.length)*100;
     const cls=w.n===cur.n?"cur":"";
     return `<div><i class="${cls}" style="height:${pct}%"><b style="height:${fill}%"></b></i></div>`;
@@ -845,21 +929,27 @@ function renderBars(){
     `<span class="${w.n===cur.n?"cur":""}">${weekSandalMinutes(w.n)}</span>`).join("");
 }
 
-function render(){
+function render(deferOpen){
   refreshOrder();
   const cur=current();
   renderBars();
   document.getElementById("exerciseNames").innerHTML=
     knownExercises().map(n=>`<option value="${esc(n)}"></option>`).join("");
 
-  document.getElementById("weeks").innerHTML=WEEKS.map(w=>{
-    const isCur=w.n===cur.n;
-    const exp = openWeek===w.n || (openWeek===null && isCur);
-    const done=wkDone(w), rounds=st.repeats[w.n]||0, feel=st.feel[w.n];
-    const faded=(!isCur&&!done&&!exp)?"opacity:.55":"";
-
+  const openN=openWeekNumber();
+  const tile=w=>{
+    const done=wkDone(w), rounds=st.repeats[w.n]||0;
+    const cls=[w.n===openN?"sel":"",w.n===cur.n?"cur":"",done?"done":""].filter(Boolean).join(" ");
+    return `<button class="wkTile ${cls}" data-open="${w.n}" aria-expanded="${w.n===openN}" aria-label="Week ${w.n}, ${wkCount(w)} of 3 runs done">
+      <span class="wkTileName">W${w.n}</span>
+      <span class="wkTileCount">${wkCount(w)}/3</span>
+      ${rounds?`<span class="wkTileRound">r${rounds+1}</span>`:""}
+    </button>`;
+  };
+  const panel=w=>{
+    const rounds=st.repeats[w.n]||0, feel=st.feel[w.n];
     let body="";
-    if(exp){
+    {
       const entries=weekEntries(w.n);
       const soloAfter=slot=>entries.filter(e=>(e.after||0)===slot).map(e=>
         e.kind==="workout"
@@ -891,7 +981,7 @@ function render(){
         <button class="addBtn" data-add="off" data-add-week="${w.n}">+ Add off-day</button>
       </div></div>`;
 
-      if(done){
+      if(wkDone(w)){
         if(!feel){
           body+=`<div class="gate"><p>How did this week compare to the last?</p><div class="row">
             ${["Better","Same","Worse"].map(f=>`<button class="pick" data-feel="${w.n}" data-v="${f}">${f}</button>`).join("")}
@@ -906,17 +996,29 @@ function render(){
       }
     }
 
-    return `<div class="card wk" style="${faded};${isCur?"":"border-color:transparent"}">
-      <button class="wkhead" data-open="${w.n}" aria-expanded="${exp}">
-        <span style="display:flex;align-items:baseline">
-          <span class="wkname ${isCur?"cur":""}">WEEK ${w.n}</span>
-          ${rounds?`<span class="round">round ${rounds+1}</span>`:""}
-        </span>
-        <span style="display:flex;align-items:center">
-          <span class="count">${wkCount(w)}/3</span><span class="caret">${exp?"▾":"▸"}</span>
-        </span>
-      </button>${body}</div>`;
+    return `<div class="wkPanel" id="wkPanel"><div class="wkPanelInner"><div class="card wkPanelCard">
+      <div class="wkPanelHead">
+        <span class="wkname cur">WEEK ${w.n}</span>
+        ${rounds?`<span class="round">round ${rounds+1}</span>`:""}
+        <span class="count">${wkCount(w)}/3</span>
+        <button class="wkClose" data-open="${w.n}" aria-label="Collapse week ${w.n}">✕</button>
+      </div>${body}</div></div></div>`;
+  };
+
+  // Tiles flow six to a row; the open week's panel is injected at the end of
+  // whichever row its tile sits in, so the grid opens in place.
+  const openIndex=openN===null?-1:WEEKS.findIndex(w=>w.n===openN);
+  document.getElementById("weeks").innerHTML=WEEKS.map((w,i)=>{
+    const endOfRow=i%GRID_COLS===GRID_COLS-1||i===WEEKS.length-1;
+    const showPanel=openIndex>=0&&endOfRow&&Math.floor(openIndex/GRID_COLS)===Math.floor(i/GRID_COLS);
+    return tile(w)+(showPanel?panel(WEEKS[openIndex]):"");
   }).join("");
+
+  // A render triggered by anything other than opening a week (ticking a run,
+  // typing reps) must leave an already-open panel open, with no animation:
+  // the class lands before first style resolution, so nothing transitions.
+  const node=document.getElementById("wkPanel");
+  if(node&&!deferOpen) node.classList.add("open");
 }
 
 document.addEventListener("click",e=>{
@@ -1005,18 +1107,10 @@ document.addEventListener("click",e=>{
     render(); return;
   } else if(t.dataset.open){
     const n=+t.dataset.open;
-    const exp = openWeek===n || (openWeek===null && n===current().n);
-    openWeek = exp ? -1 : n;
-    render();
-    if(!exp){
-      requestAnimationFrame(()=>{
-        const header=document.querySelector(`[data-open="${n}"]`);
-        if(header){
-          const behavior=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth";
-          header.closest(".wk").scrollIntoView({block:"start",behavior});
-        }
-      });
-    }
+    const showing=openWeekNumber();
+    if(showing===n) closePanel(()=>{ openWeek=-1; render(); });
+    else if(showing===null) revealWeek(n);
+    else closePanel(()=>revealWeek(n));
     return;
   } else if(t.dataset.feel){
     st.feel[t.dataset.feel]=t.dataset.v;
