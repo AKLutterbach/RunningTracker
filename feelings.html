@@ -94,9 +94,11 @@
 const KEY="sandal-transition-tracker";
 const FEEL_VALUE={Smooth:1,OK:2,Rough:3};
 const S="3 / 90s / 3",L="3 / 90s / 4",X="4 / 90s / 4";
+// The Brooks block retires after week 5 — weeks 6-8 are sandals only.
+const N="0 / 0s / 0";
 const RUN_PROTOCOLS=[
   [[S,S],[S,S],[S,S]],[[S,S],[S,S],[S,S]],[[L,S],[S,S],[S,S]],[[L,S],[S,S],[L,S]],
-  [[L,S],[L,S],[L,S]],[[X,S],[L,S],[L,S]],[[X,S],[L,S],[X,S]],[[X,L],[X,L],[X,L]]
+  [[L,S],[L,S],[L,S]],[[X,N],[L,N],[L,N]],[[X,N],[L,N],[X,N]],[[X,N],[X,N],[X,N]]
 ];
 let view="daily";
 let volumeMode="time";
@@ -171,7 +173,7 @@ function collectData(){
     const active=!!(state.done&&state.done[key])||distance!==null||!!(state.runFeels&&state.runFeels[key])||
       !!(state.runNotes&&state.runNotes[key])||!!(state.workouts&&state.workouts[key])||
       !!(state.workoutFeels&&state.workoutFeels[key])||!!(state.workoutNotes&&state.workoutNotes[key])||
-      setKeys.some(setKey=>setKey.startsWith(key+"-"));
+      setKeys.some(setKey=>setKey.startsWith(key+"|")||setKey.startsWith(key+"-"));
     if(!active) return;
     dataDays.add(day);
     metrics.push({week,day,distance,sandalMinutes:protocolMinutes(protocol[0]),brooksMinutes:protocolMinutes(protocol[1])});

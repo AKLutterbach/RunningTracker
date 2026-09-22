@@ -78,8 +78,9 @@
   .runToggle{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:6px;padding:4px;text-align:left}
   .run .runname{margin-bottom:0}
   .runBody{padding:0 16px 4px 50px}
-  .runMetrics{width:104px;max-width:100%;margin-top:10px}
-  .runMetric{display:block;min-width:0;color:var(--dim);font:500 8px var(--mono);letter-spacing:.07em}
+  .runMetrics{display:flex;flex-wrap:wrap;gap:10px;width:100%;max-width:100%;margin-top:10px}
+  .runMetric{display:block;flex:0 0 104px;min-width:0;color:var(--dim);font:500 8px var(--mono);letter-spacing:.07em}
+  .runMetric.wide{flex:0 0 150px}
   .runMetricInput{display:block;width:100%;height:34px;margin-top:4px;padding:3px 5px;border:1px solid var(--line);border-radius:4px;background:var(--surfaceHi);color:var(--text);font:500 16px var(--mono);text-align:center;-moz-appearance:textfield}
   .runMetricInput::-webkit-inner-spin-button,.runMetricInput::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
   .runMetricInput:focus{outline:1.5px solid var(--sandal);border-color:var(--sandal)}
@@ -170,6 +171,28 @@
        border-radius:5px;color:var(--dim);font-size:13px}
   .entryDelete:hover,.entryDelete:active{color:#D58B82;background:var(--surfaceHi)}
   .entryDate{color:var(--dim);font:500 9px var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+  .dateRow{display:flex;align-items:flex-end;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  .dateField{display:block;flex:0 0 150px;max-width:100%;color:var(--dim);font:500 8px var(--mono);letter-spacing:.07em}
+  .dateField span{display:block;margin-bottom:4px}
+  .dateInput{display:block;width:100%;height:34px;padding:3px 6px;border:1px solid var(--line);border-radius:4px;
+       background:var(--surfaceHi);color:var(--text);font:500 14px var(--mono);text-align:center;-webkit-appearance:none}
+  .dateInput:focus{outline:1.5px solid var(--sandal);border-color:var(--sandal)}
+  .dateInput::-webkit-calendar-picker-indicator{filter:invert(.7)}
+  .dateHint{flex:1 1 auto;min-width:0;padding-bottom:9px;color:var(--dim);font:500 9px var(--mono);letter-spacing:.06em}
+  .exDelete{flex:0 0 auto;width:24px;height:24px;display:flex;align-items:center;justify-content:center;
+       border-radius:5px;color:var(--dim);font-size:12px}
+  .exDelete:hover,.exDelete:active{color:#D58B82;background:var(--surfaceHi)}
+  .exAddRow{display:flex;gap:6px;margin-top:12px}
+  .exAddInput{flex:1 1 auto;min-width:0;height:32px;padding:4px 8px;border:1px dashed var(--line);border-radius:5px;
+       background:var(--surfaceHi);color:var(--text);font:400 14px var(--sans)}
+  .exAddInput:focus{outline:1.5px solid var(--sandal);border-color:var(--sandal);border-style:solid}
+  .exAddInput::placeholder{color:var(--dim)}
+  .exAddBtn{flex:0 0 auto;padding:0 12px;border:1px solid var(--line);border-radius:5px;color:var(--sandal);font-size:13px;font-weight:600}
+  .exAddBtn:hover,.exAddBtn:active{border-color:var(--sandal);background:var(--surfaceHi)}
+  .exMeta{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+  .exMetaBtn{color:var(--dim);font:500 9px var(--mono);letter-spacing:.06em;text-decoration:underline;padding:2px 0}
+  .exMetaBtn:hover,.exMetaBtn:active{color:var(--sandal)}
+  .exEmpty{margin-top:8px;color:var(--dim);font:500 10px var(--mono)}
   .addRow{display:flex;gap:8px;padding:12px 16px}
   .addBtn{flex:1 1 0;padding:9px 8px;border:1px dashed var(--line);border-radius:6px;color:var(--muted);
        font-size:11px;font-weight:600;text-align:center}
@@ -250,19 +273,9 @@
 
   <div class="weeks" id="weeks"></div>
 
-  <div class="card note">
-    <div class="eyebrow">EVERY DAY, UNSCHEDULED</div>
-    <p>Short foot holds · toe spreading · single-leg balance — barefoot, folded into standing time. Not a session.</p>
-    <p style="color:var(--muted)">Walking in sandals is unlimited and doesn't count as load.</p>
-    <p style="color:var(--muted)">Heel raises are bodyweight through week 2, loaded single-leg from week 3.</p>
-  </div>
-
-  <div class="card note">
-    <div class="eyebrow">SESSION ORDER</div>
-    <p style="font-family:var(--mono);font-size:11px;line-height:1.8">walk 5 (sandals) → sandal block → switch → brooks block → walk 5 → strength</p>
-  </div>
-
 </div>
+
+<datalist id="exerciseNames"></datalist>
 
 <div class="modal" id="noteModal" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="noteModalTitle">
@@ -303,13 +316,16 @@ const parseSegments=s=>{
   const v=String(s).match(/\d+(?:\.\d+)?/g)||[];
   return [Number(v[0]||0),Number(v[1]||0),Number(v[2]||0)];
 };
+const BROOKS_LAST_WEEK=5;
+const hasBrooks=wn=>Number(wn)<=BROOKS_LAST_WEEK;
 const DEFAULT_PROTOCOL={};
-WEEKS.forEach(w=>{DEFAULT_PROTOCOL[w.n]=w.runs.map(r=>({s:parseSegments(r[0]),b:parseSegments(r[1])}));});
+WEEKS.forEach(w=>{DEFAULT_PROTOCOL[w.n]=w.runs.map(r=>({s:parseSegments(r[0]),b:hasBrooks(w.n)?parseSegments(r[1]):[0,0,0]}));});
 const defaultWeekProtocol=wn=>DEFAULT_PROTOCOL[wn].map(p=>({s:p.s.slice(),b:p.b.slice()}));
 const segLabel=seg=>`${seg[0]} / ${seg[1]}s / ${seg[2]}`;
 const segMinutes=seg=>Number(seg[0])+Number(seg[2]);
 const SEG_FIELDS=[["RUN 1",0,"min"],["WALK",1,"sec"],["RUN 2",2,"min"]];
 const SEG_BLOCKS=[["s","SANDALS","--sandal"],["b","BROOKS","--brooks"]];
+const blocksFor=wn=>SEG_BLOCKS.filter(([block])=>block!=="b"||hasBrooks(wn));
 
 const KEY="sandal-transition-tracker";
 const PROTO_KEY="sandal-transition-protocol";
@@ -320,7 +336,7 @@ const GH_KEYS={
   branch:"sandal-transition-github-branch"
 };
 const SNAPSHOT_KEYS=[KEY,PROTO_KEY,GH_KEYS.owner,GH_KEYS.repo,GH_KEYS.branch];
-const emptyState=()=>({done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runMetrics:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{},offDayDone:{},offDayFeels:{},offDayNotes:{},sessionHistory:[],entries:[],workoutAt:{},workoutType:{},workoutTypeOverride:{}});
+const emptyState=()=>({done:{},feel:{},repeats:{},sets:{},workouts:{},workoutOpen:{},runMetrics:{},runFeels:{},runNotes:{},workoutFeels:{},workoutNotes:{},offDayDone:{},offDayFeels:{},offDayNotes:{},sessionHistory:[],entries:[],workoutAt:{},workoutType:{},workoutTypeOverride:{},runAt:{},exerciseTemplates:{},workoutExercises:{}});
 let st=emptyState();
 let proto={};
 let openWeek=null;
@@ -339,7 +355,7 @@ function loadProtocol(){
       if(!Array.isArray(week)) return;
       week.forEach((p,i)=>{
         if(!p||!proto[w.n][i]) return;
-        SEG_BLOCKS.forEach(([block])=>{
+        blocksFor(w.n).forEach(([block])=>{
           if(!Array.isArray(p[block])) return;
           p[block].forEach((v,n)=>{
             const num=Number(v);
@@ -365,7 +381,7 @@ function load(){
     if(r) st=Object.assign(emptyState(),JSON.parse(r));
     if(!Array.isArray(st.sessionHistory)) st.sessionHistory=[];
     if(!Array.isArray(st.entries)) st.entries=[];
-    ["workoutAt","workoutType","workoutTypeOverride"].forEach(k=>{
+    ["workoutAt","workoutType","workoutTypeOverride","runAt","exerciseTemplates","workoutExercises"].forEach(k=>{
       if(!st[k]||typeof st[k]!=="object") st[k]={};
     });
   }
@@ -393,6 +409,99 @@ const wkCount=w=>w.runs.filter((_,i)=>st.done[w.n+"-"+i]).length;
 const current=()=>WEEKS.find(w=>!wkDone(w))||WEEKS[7];
 const parts=s=>s.split(/\s+[^A-Za-z0-9]+\s+/);
 const strengthRowsFor=letter=>[...parts(WORKOUTS[letter]||WORKOUTS.A),...parts(ACC)];
+
+// --- exercise lists -----------------------------------------------------
+// Each workout type has an editable default list; an individual workout may
+// carry its own list in st.workoutExercises, which wins. Set values are keyed
+// by exercise NAME, so adding or removing a row never shifts anyone's reps.
+const DEFAULT_EXERCISES={A:strengthRowsFor("A"),B:strengthRowsFor("B")};
+const cleanExercise=n=>String(n||"").replace(/\|/g,"/").replace(/\s+/g," ").trim();
+function templateFor(letter){
+  const t=st.exerciseTemplates[letter];
+  return Array.isArray(t)?t.slice():(DEFAULT_EXERCISES[letter]||DEFAULT_EXERCISES.A).slice();
+}
+function exercisesFor(key,letter){
+  const list=st.workoutExercises[key];
+  return Array.isArray(list)?list.slice():templateFor(letter||typeFor(key));
+}
+const sameList=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);
+function knownExercises(){
+  const seen=new Set([...DEFAULT_EXERCISES.A,...DEFAULT_EXERCISES.B]);
+  ["A","B"].forEach(l=>templateFor(l).forEach(x=>seen.add(x)));
+  Object.values(st.workoutExercises).forEach(l=>{ if(Array.isArray(l)) l.forEach(x=>seen.add(x)); });
+  st.sessionHistory.forEach(h=>{ if(h&&h.sets) Object.keys(h.sets).forEach(x=>seen.add(x)); });
+  return [...seen].filter(Boolean).sort((a,b)=>a.localeCompare(b));
+}
+function addExercise(key,name){
+  const clean=cleanExercise(name);
+  if(!clean) return false;
+  const list=exercisesFor(key);
+  if(list.some(x=>x.toLowerCase()===clean.toLowerCase())) return false;
+  list.push(clean);
+  st.workoutExercises[key]=list;
+  return true;
+}
+function removeExercise(key,name){
+  const list=exercisesFor(key);
+  const at=list.indexOf(name);
+  if(at<0) return false;
+  const logged=[0,1,2].some(si=>st.sets[`${key}|${name}|${si}`]);
+  if(logged&&!confirm(`Remove "${name}" from this workout? Its logged sets will be deleted.`)) return false;
+  list.splice(at,1);
+  st.workoutExercises[key]=list;
+  [0,1,2].forEach(si=>delete st.sets[`${key}|${name}|${si}`]);
+  const ref=refFor(key);
+  if(ref&&st.workouts[key]) recordCompletedSession(ref);
+  return true;
+}
+
+// --- dates --------------------------------------------------------------
+const pad2=n=>String(n).padStart(2,"0");
+function toDateInput(iso){
+  if(!iso) return "";
+  const d=new Date(iso);
+  if(isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+}
+// Re-date an entry while keeping whatever time of day it already carried.
+function withDate(iso,ymd){
+  const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd||"");
+  if(!m) return null;
+  const base=iso?new Date(iso):null;
+  const ok=base&&!isNaN(base.getTime());
+  return new Date(Number(m[1]),Number(m[2])-1,Number(m[3]),
+    ok?base.getHours():12,ok?base.getMinutes():0,0,0).toISOString();
+}
+const dateField=(kind,key,iso,label)=>`<label class="dateField"><span>DATE</span><input class="dateInput" type="date" data-date-kind="${kind}" data-date-key="${key}" value="${toDateInput(iso)}" aria-label="${esc(label)}"></label>`;
+function applyDateEdit(kind,key,ymd){
+  if(kind==="run"){
+    const iso=withDate(st.runAt[key],ymd);
+    if(iso) st.runAt[key]=iso; else delete st.runAt[key];
+    return;
+  }
+  if(kind==="off"){
+    const entry=st.entries.find(e=>e&&e.id===key);
+    if(!entry) return;
+    const iso=withDate(entry.at,ymd);
+    entry.at=iso;
+    if(iso) delete entry.migrated;
+    return;
+  }
+  if(kind!=="workout") return;
+  const ref=refFor(key);
+  if(!ref) return;
+  let iso;
+  if(ref.scope==="solo"){
+    iso=withDate(ref.entry.at,ymd);
+    ref.entry.at=iso;
+    if(iso) delete ref.entry.migrated;
+  } else {
+    iso=withDate(st.workoutAt[key],ymd);
+    if(iso) st.workoutAt[key]=iso; else delete st.workoutAt[key];
+  }
+  refreshOrder();
+  if(st.workouts[key]) recordCompletedSession(ref,iso||undefined);
+}
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 // --- workout identity ---------------------------------------------------
@@ -408,7 +517,7 @@ const weekEntries=wn=>st.entries
   .filter(e=>e&&e.week===wn)
   .sort((a,b)=>(a.after||0)-(b.after||0)||(Date.parse(a.at||"")||0)-(Date.parse(b.at||"")||0)||String(a.id).localeCompare(String(b.id)));
 const historyIdFor=ref=>ref.scope==="run"?`${ref.wn}-${ref.i}-r${st.repeats[ref.wn]||0}`:ref.key;
-const setKeyFor=(ref,ei,si)=>ref.scope==="run"?`${ref.wn}-${ref.i}-${ei}-${si}`:`${ref.key}-${ei}-${si}`;
+const setKeyFor=(ref,exercise,si)=>`${ref.key}|${exercise}|${si}`;
 function refFor(key){
   const m=/^(\d+)-(\d+)$/.exec(key);
   if(m){
@@ -468,10 +577,10 @@ const typeFor=key=>TYPES[key]||"A";
 
 function sessionSnapshot(ref,completedAt){
   const type=typeFor(ref.key);
-  const exercises=strengthRowsFor(type);
+  const exercises=exercisesFor(ref.key,type);
   const sets={};
-  exercises.forEach((exercise,ei)=>{
-    sets[exercise]=[0,1,2].map(si=>st.sets[setKeyFor(ref,ei,si)]??null);
+  exercises.forEach(exercise=>{
+    sets[exercise]=[0,1,2].map(si=>st.sets[setKeyFor(ref,exercise,si)]??null);
   });
   return {
     id:historyIdFor(ref),
@@ -534,6 +643,19 @@ function migrate(){
     if(Number.isFinite(t)){ st.workoutAt[key]=new Date(t).toISOString(); changed=true; }
   });
   refreshOrder();
+  // 2b. Set values used to be keyed by exercise INDEX ("<workout>-<ei>-<si>").
+  //     Re-key them by exercise name so rows can be added and removed freely.
+  Object.keys(st.sets).forEach(k=>{
+    const m=/^(.+)-(\d+)-(\d+)$/.exec(k);
+    if(!m) return;
+    const wkey=m[1], ei=Number(m[2]), si=Number(m[3]);
+    if(si>2||!refFor(wkey)) return;
+    const name=(DEFAULT_EXERCISES[typeFor(wkey)]||DEFAULT_EXERCISES.A)[ei];
+    const value=st.sets[k];
+    delete st.sets[k];
+    changed=true;
+    if(name!==undefined&&st.sets[`${wkey}|${name}|${si}`]===undefined) st.sets[`${wkey}|${name}|${si}`]=value;
+  });
   // 3. Completed paired workouts that predate sessionHistory entirely.
   WEEKS.forEach(w=>w.runs.forEach((_,i)=>{
     const ref=pairedRef(w.n,i);
@@ -579,8 +701,8 @@ function deleteEntry(id){
   if(!confirm(`Delete this ${label} entry? Its feel, note${entry.kind==="workout"?" and sets":""} will be removed.`)) return false;
   st.entries=st.entries.filter(e=>e&&e.id!==id);
   if(entry.kind==="workout"){
-    ["workouts","workoutFeels","workoutNotes","workoutAt","workoutType","workoutTypeOverride"].forEach(b=>delete st[b][id]);
-    Object.keys(st.sets).forEach(k=>{ if(k.startsWith(id+"-")) delete st.sets[k]; });
+    ["workouts","workoutFeels","workoutNotes","workoutAt","workoutType","workoutTypeOverride","workoutExercises"].forEach(b=>delete st[b][id]);
+    Object.keys(st.sets).forEach(k=>{ if(k.startsWith(id+"|")) delete st.sets[k]; });
     st.sessionHistory=st.sessionHistory.filter(s=>!s||s.id!==id);
     delete workoutOpen[id];
   } else {
@@ -624,7 +746,7 @@ function offDayHtml(e){
       </button>
       <button class="entryDelete" data-delete-entry="${k}" aria-label="Delete off day entry" title="Delete">✕</button>
     </div>
-    ${open?`<div class="offDayContext">${esc(entryStamp(e))}</div>${feelLog("off",k,st.offDayFeels[k],st.offDayNotes[k],"offDayLog")}`:""}
+    ${open?`<div class="offDayContext"><div class="dateRow">${dateField("off",k,e.at,"Off day date")}${e.at?"":`<span class="dateHint">${esc(entryStamp(e))}</span>`}</div></div>${feelLog("off",k,st.offDayFeels[k],st.offDayNotes[k],"offDayLog")}`:""}
   </div></div>`;
 }
 
@@ -632,7 +754,7 @@ function workoutHtml(ref,options){
   const opts=options||{};
   const key=ref.key;
   const letter=typeFor(key);
-  const exercises=strengthRowsFor(letter);
+  const exercises=exercisesFor(key,letter);
   const done=!!st.workouts[key];
   const open=!!workoutOpen[key];
   const override=st.workoutTypeOverride[key];
@@ -645,17 +767,30 @@ function workoutHtml(ref,options){
   </div>`;
   const rows=exercises.map((ex,ei)=>
     `<div class="strengthRow">
-      <span class="exercise">${ex}</span>
+      <span class="exercise">${esc(ex)}</span>
       <span class="sets">
         ${[0,1,2].map(si=>{
-          const k=setKeyFor(ref,ei,si);
+          const k=setKeyFor(ref,ex,si);
           const previous=previousSetValue(prior,ex,si);
           const aria=`${label} ${ex} set ${si+1}${previous?`, previous ${previous}`:""}`;
           const enterHint=ei===exercises.length-1&&si===2?"done":"next";
-          return `<input class="setInput" type="text" data-set="${k}" data-wkey="${key}" data-ei="${ei}" data-si="${si}" data-previous="${esc(previous)}" value="${esc(st.sets[k]??"")}" placeholder="${esc(previous||"-")}" inputmode="numeric" pattern="[0-9]*" enterkeyhint="${enterHint}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="${esc(aria)}">`;
+          return `<input class="setInput" type="text" data-set="${esc(k)}" data-wkey="${key}" data-ei="${ei}" data-si="${si}" data-previous="${esc(previous)}" value="${esc(st.sets[k]??"")}" placeholder="${esc(previous||"-")}" inputmode="numeric" pattern="[0-9]*" enterkeyhint="${enterHint}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="${esc(aria)}">`;
         }).join("")}
       </span>
-    </div>`).join("");
+      <button class="exDelete" data-ex-remove="${key}" data-ex-name="${esc(ex)}" aria-label="Remove ${esc(ex)} from this workout" title="Remove exercise">✕</button>
+    </div>`).join("")||`<p class="exEmpty">No exercises in this workout yet.</p>`;
+  const custom=Array.isArray(st.workoutExercises[key]);
+  const isTemplate=custom&&sameList(exercises,templateFor(letter));
+  const editor=`<div class="exAddRow">
+    <input class="exAddInput" type="text" data-ex-input="${key}" list="exerciseNames" placeholder="+ add exercise" enterkeyhint="done" autocomplete="off" autocapitalize="words" spellcheck="false" aria-label="Add an exercise to ${esc(label)}">
+    <button class="exAddBtn" data-ex-add="${key}" type="button" aria-label="Add exercise">Add</button>
+  </div>
+  ${custom&&!isTemplate?`<div class="exMeta">
+    <button class="exMetaBtn" data-ex-default="${key}" type="button">save as default for workout ${letter}</button>
+    <button class="exMetaBtn" data-ex-reset="${key}" type="button">reset to workout ${letter} default</button>
+  </div>`:""}`;
+  const dateIso=ref.scope==="solo"?(ref.entry&&ref.entry.at):st.workoutAt[key];
+  const dateRow=`<div class="dateRow">${dateField("workout",key,dateIso,label+" date")}${!dateIso&&opts.hint?`<span class="dateHint">${esc(opts.hint)}</span>`:""}</div>`;
   return `<div class="workout ${done?"done":""}">
     <div class="workoutHead">
       <button class="workoutCheck" data-workout="${key}" aria-pressed="${done}" aria-label="Mark workout ${letter} ${done?"not done":"done"}">
@@ -666,7 +801,7 @@ function workoutHtml(ref,options){
       </button>
       ${opts.deletable?`<button class="entryDelete" data-delete-entry="${key}" aria-label="Delete workout entry" title="Delete">✕</button>`:""}
     </div>
-    ${open?`<div class="strength">${opts.stamp?`<div class="entryDate">${esc(opts.stamp)}</div>`:""}${typeRow}${rows}${feelLog("workout",key,st.workoutFeels[key],st.workoutNotes[key],"workoutLog")}</div>`:""}
+    ${open?`<div class="strength">${dateRow}${typeRow}${rows}${editor}${feelLog("workout",key,st.workoutFeels[key],st.workoutNotes[key],"workoutLog")}</div>`:""}
   </div>`;
 }
 
@@ -681,7 +816,7 @@ function protocolHtml(w){
         const p=runProtocol(w.n,i);
         return `<div class="protoRun">
           <div class="protoRunName" style="color:var(--run${i+1})">RUN ${i+1}</div>
-          ${SEG_BLOCKS.map(([block,name,colour])=>`<div class="protoGrid">
+          ${blocksFor(w.n).map(([block,name,colour])=>`<div class="protoGrid">
             <span class="protoBlockName" style="color:var(${colour})">${name}</span>
             ${SEG_FIELDS.map(([field,n,unit])=>`<label class="protoField"><span>${field} <i>${unit}</i></span><input class="protoInput" type="number" min="0" step="${n===1?10:1}" inputmode="numeric" value="${esc(p[block][n])}" data-proto-week="${w.n}" data-proto-run="${i}" data-proto-block="${block}" data-proto-index="${n}" aria-label="Week ${w.n} run ${i+1} ${name} ${field} ${unit}"></label>`).join("")}
           </div>`).join("")}
@@ -708,6 +843,8 @@ function render(){
   refreshOrder();
   const cur=current();
   renderBars();
+  document.getElementById("exerciseNames").innerHTML=
+    knownExercises().map(n=>`<option value="${esc(n)}"></option>`).join("");
 
   document.getElementById("weeks").innerHTML=WEEKS.map(w=>{
     const isCur=w.n===cur.n;
@@ -720,7 +857,7 @@ function render(){
       const entries=weekEntries(w.n);
       const soloAfter=slot=>entries.filter(e=>(e.after||0)===slot).map(e=>
         e.kind==="workout"
-          ? `<div class="day soloDay">${workoutHtml(soloRef(e),{deletable:true,stamp:entryStamp(e),label:"Standalone workout"})}</div>`
+          ? `<div class="day soloDay">${workoutHtml(soloRef(e),{deletable:true,hint:entryStamp(e),label:"Standalone workout"})}</div>`
           : offDayHtml(e)).join("");
 
       body=protocolHtml(w)+`<div class="runs">`+soloAfter(0)+w.runs.map((r,i)=>{
@@ -737,9 +874,10 @@ function render(){
           </button>
         </div>${ro?`<div class="runBody">
           <span class="line"><span class="tag" style="color:var(--sandal)">SANDALS</span><span class="val">${segLabel(p.s)}</span><span class="runMinutes">${segMinutes(p.s)} min</span></span>
-          <span class="line"><span class="tag" style="color:var(--brooks)">BROOKS</span><span class="val">${segLabel(p.b)}</span><span class="runMinutes">${segMinutes(p.b)} min</span></span>
+          ${hasBrooks(w.n)?`<span class="line"><span class="tag" style="color:var(--brooks)">BROOKS</span><span class="val">${segLabel(p.b)}</span><span class="runMinutes">${segMinutes(p.b)} min</span></span>`:""}
           <div class="runMetrics">
             <label class="runMetric">DISTANCE (MI)<input class="runMetricInput" type="number" min="0" step="0.01" inputmode="decimal" data-run-key="${rk}" data-run-metric="distance" value="${esc(rm.distance??"")}" placeholder="0.00" aria-label="Run ${i+1} distance in miles"></label>
+            <label class="runMetric wide">DATE<input class="runMetricInput dateInput" type="date" data-date-kind="run" data-date-key="${rk}" value="${toDateInput(st.runAt[rk])}" aria-label="Week ${w.n} run ${i+1} date"></label>
           </div>
         </div>${feelLog("run",rk,st.runFeels[rk],st.runNotes[rk])}`:""}${strength}</div>${soloAfter(i+1)}`;
       }).join("")+`<div class="addRow">
@@ -776,12 +914,24 @@ function render(){
 }
 
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-w],[data-open],[data-feel],[data-repeat],[data-workout],[data-off-day],[data-run-open],[data-workout-open],[data-off-day-open],[data-log-type],[data-note-type],[data-add],[data-delete-entry],[data-type-key],[data-proto-open],[data-proto-reset]");
+  const t=e.target.closest("[data-w],[data-open],[data-feel],[data-repeat],[data-workout],[data-off-day],[data-run-open],[data-workout-open],[data-off-day-open],[data-log-type],[data-note-type],[data-add],[data-delete-entry],[data-type-key],[data-proto-open],[data-proto-reset],[data-ex-remove],[data-ex-add],[data-ex-default],[data-ex-reset]");
   if(!t) return;
   if(t.dataset.noteType){ openNote(t.dataset.noteType,t.dataset.noteKey); return; }
   if(t.dataset.w!==undefined && t.dataset.i!==undefined){
     const k=t.dataset.w+"-"+t.dataset.i;
-    if(st.done[k]) delete st.done[k]; else st.done[k]=true;
+    if(st.done[k]){ delete st.done[k]; delete st.runAt[k]; }
+    else { st.done[k]=true; st.runAt[k]=new Date().toISOString(); }
+  } else if(t.dataset.exRemove){
+    if(!removeExercise(t.dataset.exRemove,t.dataset.exName)) return;
+  } else if(t.dataset.exAdd){
+    const field=document.querySelector(`[data-ex-input="${t.dataset.exAdd}"]`);
+    if(!field||!addExercise(t.dataset.exAdd,field.value)) return;
+    field.value="";
+  } else if(t.dataset.exDefault){
+    const k=t.dataset.exDefault;
+    st.exerciseTemplates[typeFor(k)]=exercisesFor(k);
+  } else if(t.dataset.exReset){
+    delete st.workoutExercises[t.dataset.exReset];
   } else if(t.dataset.logType){
     const bucket=feelBucket(t.dataset.logType);
     const k=t.dataset.logKey, v=t.dataset.logValue;
@@ -817,6 +967,7 @@ document.addEventListener("click",e=>{
       st.workouts[k]=true;
       st.workoutType[k]=typeFor(k);
       if(ref.scope==="run") st.workoutAt[k]=new Date().toISOString();
+      st.workoutExercises[k]=exercisesFor(k);
       refreshOrder();
       recordCompletedSession(ref);
       workoutOpen[k]=false;
@@ -867,8 +1018,11 @@ document.addEventListener("click",e=>{
     const n=+t.dataset.repeat, w=WEEKS[n-1];
     w.runs.forEach((_,i)=>delete st.done[n+"-"+i]);
     const clearWeek=bucket=>Object.keys(bucket).forEach(k=>{ if(k.startsWith(n+"-")) delete bucket[k]; });
-    ["sets","workouts","workoutOpen","runFeels","runNotes","runMetrics","workoutFeels","workoutNotes",
-     "offDayDone","offDayFeels","offDayNotes","workoutAt","workoutType","workoutTypeOverride"].forEach(b=>clearWeek(st[b]));
+    ["workouts","workoutOpen","runFeels","runNotes","runMetrics","workoutFeels","workoutNotes",
+     "offDayDone","offDayFeels","offDayNotes","workoutAt","workoutType","workoutTypeOverride",
+     "runAt","workoutExercises"].forEach(b=>clearWeek(st[b]));
+    // Set keys are "<week>-<run>|<exercise>|<set>", so match on the workout key.
+    Object.keys(st.sets).forEach(k=>{ if(k.startsWith(n+"-")) delete st.sets[k]; });
     [runOpen,workoutOpen,offDayOpen].forEach(clearWeek);
     // Migrated off-day rows clear with the rest of the week; standalone entries
     // you created yourself are kept — they are dated records of their own.
@@ -995,6 +1149,14 @@ document.addEventListener("input",e=>{
   save();
 });
 
+// Date pickers commit on change, not on every keystroke, so the row does not
+// re-sort under the user mid-edit.
+document.addEventListener("change",e=>{
+  if(!e.target.matches("[data-date-kind]")) return;
+  applyDateEdit(e.target.dataset.dateKind,e.target.dataset.dateKey,e.target.value);
+  save(); render();
+});
+
 document.addEventListener("focusin",e=>{
   if(!e.target.matches("[data-set]")) return;
   showRepNav(e.target);
@@ -1072,6 +1234,12 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Enter"&&e.target.matches&&e.target.matches("[data-set]")){
     e.preventDefault();
     moveRep(1);
+  }
+  if(e.key==="Enter"&&e.target.matches&&e.target.matches("[data-ex-input]")){
+    e.preventDefault();
+    if(!addExercise(e.target.dataset.exInput,e.target.value)) return;
+    e.target.value="";
+    save(); render();
   }
 });
 
