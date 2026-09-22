@@ -60,14 +60,14 @@
   .nums{display:flex;gap:6px;margin-top:8px}
   .nums span{flex:1;text-align:center;font-family:var(--mono);font-size:10px;color:var(--dim)}
   .nums span.cur{color:var(--sandal)}
-  .weeks{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+  .weeks{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
   .wkTile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-       min-width:0;padding:11px 2px;border:1px solid var(--line);border-radius:8px;background:var(--surface);
+       min-width:0;padding:14px 4px;border:1px solid var(--line);border-radius:9px;background:var(--surface);
        transition:border-color .22s ease,background .22s ease,box-shadow .28s ease}
-  .wkTileName{font-family:var(--display);font-size:17px;font-weight:700;letter-spacing:.02em;line-height:1;color:var(--muted);
+  .wkTileName{font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:.02em;line-height:1;color:var(--muted);
        transition:color .22s ease}
-  .wkTileCount{font-family:var(--mono);font-size:9px;line-height:1;color:var(--dim);transition:color .22s ease}
-  .wkTileRound{position:absolute;top:3px;right:4px;font:500 7px var(--mono);color:var(--dim)}
+  .wkTileCount{font-family:var(--mono);font-size:10px;line-height:1;color:var(--dim);transition:color .22s ease}
+  .wkTileRound{position:absolute;top:4px;right:5px;font:500 8px var(--mono);color:var(--dim)}
   .wkTile.done .wkTileName,.wkTile.done .wkTileCount{color:var(--done)}
   .wkTile.cur{border-color:rgba(227,165,82,.5)}
   .wkTile.cur .wkTileName{color:var(--sandal)}
@@ -255,8 +255,8 @@
   @media (max-width:420px){
     .weeks{gap:6px}
     .wkPanel{margin-block:-6px}
-    .wkTile{padding:10px 1px}
-    .wkTileName{font-size:15px}
+    .wkTile{padding:12px 2px}
+    .wkTileName{font-size:18px}
     .strength{padding-left:16px}
     .strengthRow{gap:6px}
     .exercise{min-width:0}
@@ -438,7 +438,7 @@ function save(silent){
   }
 }
 
-const GRID_COLS=6;
+const GRID_COLS=5;
 const wkDone=w=>w.runs.every((_,i)=>st.done[w.n+"-"+i]);
 const wkCount=w=>w.runs.filter((_,i)=>st.done[w.n+"-"+i]).length;
 const current=()=>WEEKS.find(w=>!wkDone(w))||WEEKS[WEEKS.length-1];
@@ -474,14 +474,70 @@ function closePanel(done){
   setTimeout(finish,520);
   node.classList.remove("open");
 }
+// --- centring the opened week ------------------------------------------
+// The page scroll rides the same curve and beat as the panel expansion, so
+// the two settle together instead of one chasing the other. A hand-rolled
+// animation rather than scrollTo({behavior:"smooth"}), whose duration and
+// easing the browser picks for us and which would not match.
+const easeOutExpo=t=>t>=1?1:1-Math.pow(2,-10*t);
+let scrollAnim=null;
+function stopScrollAnim(){
+  if(!scrollAnim) return;
+  cancelAnimationFrame(scrollAnim.id);
+  window.removeEventListener("wheel",stopScrollAnim);
+  window.removeEventListener("touchstart",stopScrollAnim);
+  window.removeEventListener("keydown",stopScrollAnim);
+  scrollAnim=null;
+}
+// `growth` is height the page is about to gain but has not yet, so the target
+// is not clamped against a document that is still short.
+function glideScrollTo(top,duration,growth){
+  stopScrollAnim();
+  const limit=Math.max(0,document.documentElement.scrollHeight+(growth||0)-window.innerHeight);
+  const to=Math.max(0,Math.min(limit,top));
+  const from=window.scrollY;
+  const span=to-from;
+  if(Math.abs(span)<2) return;
+  if(reducedMotion()){ window.scrollTo(0,to); return; }
+  const begun=performance.now();
+  scrollAnim={id:0};
+  const step=now=>{
+    const t=Math.min(1,(now-begun)/duration);
+    window.scrollTo(0,from+span*easeOutExpo(t));
+    if(t<1) scrollAnim.id=requestAnimationFrame(step);
+    else stopScrollAnim();
+  };
+  // Any real input wins immediately; never fight the user's own scrolling.
+  window.addEventListener("wheel",stopScrollAnim,{passive:true});
+  window.addEventListener("touchstart",stopScrollAnim,{passive:true});
+  window.addEventListener("keydown",stopScrollAnim);
+  scrollAnim.id=requestAnimationFrame(step);
+}
+// Measured while the panel is still closed: its top is already final (growth
+// pushes what is below it, not itself) and the card inside reports its natural
+// height even though the wrapper clipping it is zero tall.
+function centrePanel(){
+  const node=document.getElementById("wkPanel");
+  const card=node&&node.querySelector(".wkPanelCard");
+  if(!card) return;
+  const height=card.getBoundingClientRect().height;
+  if(!height) return;
+  // Closed, the panel carries a negative block margin cancelling the grid gap;
+  // opening returns it to 0 and nudges the panel down by that much.
+  const shift=-(parseFloat(getComputedStyle(node).marginTop)||0);
+  const top=node.getBoundingClientRect().top+window.scrollY+shift;
+  const view=window.innerHeight;
+  const edge=14;
+  // Centre it when it fits. When it is taller than the screen, centring would
+  // push the week header off the top, so bring its head to the top instead.
+  const target=height+edge*2<=view?top-(view-height)/2:top-edge;
+  glideScrollTo(target,460,height);
+}
 function revealWeek(n){
   openWeek=n;
   render(true);
+  centrePanel();
   openPanel();
-  requestAnimationFrame(()=>{
-    const sel=document.querySelector(".wkTile.sel");
-    if(sel) sel.scrollIntoView({block:"nearest",behavior:reducedMotion()?"auto":"smooth"});
-  });
 }
 const parts=s=>s.split(/\s+[^A-Za-z0-9]+\s+/);
 const strengthRowsFor=letter=>[...parts(WORKOUTS[letter]||WORKOUTS.A),...parts(ACC)];
