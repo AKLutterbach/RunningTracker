@@ -28,7 +28,6 @@
   button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
   button:focus-visible{outline:2px solid var(--sandal);outline-offset:2px}
   h1{font-family:var(--display);font-size:30px;font-weight:700;letter-spacing:.02em;line-height:1}
-  .sub{color:var(--muted);font-size:12px;margin-top:4px}
   .topbar{position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
   .topActions{position:relative;display:flex;gap:8px;flex:0 0 auto}
   .savedState{position:absolute;top:13px;right:92px;color:var(--done);font:500 10px var(--mono);opacity:0;transition:opacity .2s;white-space:nowrap}
@@ -60,13 +59,13 @@
   .nums{display:flex;gap:6px;margin-top:8px}
   .nums span{flex:1;text-align:center;font-family:var(--mono);font-size:10px;color:var(--dim)}
   .nums span.cur{color:var(--sandal)}
-  .weeks{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
-  .wkTile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-       min-width:0;padding:14px 4px;border:1px solid var(--line);border-radius:9px;background:var(--surface);
+  .weeks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  .wkTile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+       min-width:0;aspect-ratio:1;padding:6px 4px;border:1px solid var(--line);border-radius:10px;background:var(--surface);
        transition:border-color .22s ease,background .22s ease,box-shadow .28s ease}
-  .wkTileName{font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:.02em;line-height:1;color:var(--muted);
+  .wkTileName{font-family:var(--display);font-size:26px;font-weight:700;letter-spacing:.02em;line-height:1;color:var(--muted);
        transition:color .22s ease}
-  .wkTileCount{font-family:var(--mono);font-size:10px;line-height:1;color:var(--dim);transition:color .22s ease}
+  .wkTileCount{font-family:var(--mono);font-size:11px;line-height:1;color:var(--dim);transition:color .22s ease}
   .wkTileRound{position:absolute;top:4px;right:5px;font:500 8px var(--mono);color:var(--dim)}
   .wkTile.done .wkTileName,.wkTile.done .wkTileCount{color:var(--done)}
   .wkTile.cur{border-color:rgba(227,165,82,.5)}
@@ -255,8 +254,8 @@
   @media (max-width:420px){
     .weeks{gap:6px}
     .wkPanel{margin-block:-6px}
-    .wkTile{padding:12px 2px}
-    .wkTileName{font-size:18px}
+    .wkTile{padding:4px 2px}
+    .wkTileName{font-size:23px}
     .strength{padding-left:16px}
     .strengthRow{gap:6px}
     .exercise{min-width:0}
@@ -270,7 +269,6 @@
   <div class="topbar">
     <div>
       <h1>RUN TRACKER</h1>
-      <div class="sub">Sandal minutes per week.<br>Everything else serves that.</div>
     </div>
     <div class="topActions">
       <div class="savedState" id="saved">saved</div>
@@ -438,7 +436,7 @@ function save(silent){
   }
 }
 
-const GRID_COLS=5;
+const GRID_COLS=4;
 const wkDone=w=>w.runs.every((_,i)=>st.done[w.n+"-"+i]);
 const wkCount=w=>w.runs.filter((_,i)=>st.done[w.n+"-"+i]).length;
 const current=()=>WEEKS.find(w=>!wkDone(w))||WEEKS[WEEKS.length-1];

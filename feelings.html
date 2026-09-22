@@ -29,7 +29,7 @@
   h1{font-family:var(--display);font-size:30px;font-weight:700;letter-spacing:.02em;line-height:1}
   .sub{max-width:470px;color:var(--muted);font-size:12px;line-height:1.5;margin-top:6px}
   .card{margin-top:20px;padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
-  .chartControls{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .chartControls{display:grid;grid-template-columns:1fr;gap:8px}
   .viewSwitch{display:flex;gap:4px;min-width:0;padding:4px;background:var(--bg);border:1px solid var(--line);border-radius:7px}
   .viewButton{flex:1;min-width:0;padding:8px 3px;border-radius:4px;color:var(--muted);font-size:11px;font-weight:600;white-space:nowrap}
   .viewButton.on{background:var(--surfaceHi);color:var(--sandal)}
@@ -65,10 +65,6 @@
 
   <main class="card">
     <div class="chartControls">
-      <div class="viewSwitch" role="group" aria-label="Chart time scale">
-        <button class="viewButton on" type="button" data-view="daily" aria-pressed="true">Daily</button>
-        <button class="viewButton" type="button" data-view="weekly" aria-pressed="false">Weekly</button>
-      </div>
       <div class="viewSwitch" role="group" aria-label="Running volume metric">
         <button class="viewButton on" type="button" data-volume="time" aria-pressed="true">Time</button>
         <button class="viewButton" type="button" data-volume="distance" aria-pressed="false">Distance</button>
@@ -76,7 +72,7 @@
     </div>
 
     <div class="chartHead">
-      <div class="eyebrow" id="chartTitle">DAILY FEELING + TIME</div>
+      <div class="eyebrow" id="chartTitle">WEEKLY FEELING + TIME</div>
     </div>
 
     <div class="chart" id="chart"></div>
@@ -84,7 +80,7 @@
 
     <div class="stats">
       <div class="stat"><div class="statValue" id="entryCount">0</div><div class="statLabel">FEELING ENTRIES</div></div>
-      <div class="stat"><div class="statValue" id="periodCount">0</div><div class="statLabel" id="periodLabel">DAYS LOGGED</div></div>
+      <div class="stat"><div class="statValue" id="periodCount">0</div><div class="statLabel">WEEKS LOGGED</div></div>
     </div>
 
   </main>
@@ -100,7 +96,6 @@ const RUN_PROTOCOLS=[
   [[S,S],[S,S],[S,S]],[[S,S],[S,S],[S,S]],[[L,S],[S,S],[S,S]],[[L,S],[S,S],[L,S]],
   [[L,S],[L,S],[L,S]],[[X,N],[L,N],[L,N]],[[X,N],[L,N],[X,N]],[[X,N],[X,N],[X,N]]
 ];
-let view="daily";
 let volumeMode="time";
 
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -128,7 +123,6 @@ function loadState(){
 function collectData(){
   const state=loadState();
   const feelings=[];
-  const dataDays=new Set();
   const add=(bucket,type,dayForIndex)=>{
     Object.entries(bucket||{}).forEach(([key,feel])=>{
       if(!(feel in FEEL_VALUE)) return;
@@ -138,35 +132,23 @@ function collectData(){
       if(week<1||week>8) return;
       const dayInWeek=dayForIndex(index);
       if(dayInWeek<1||dayInWeek>7) return;
-      const day=(week-1)*7+dayInWeek;
       feelings.push({
         week,
-        day,
         value:FEEL_VALUE[feel],
         feel,
         type
       });
-      dataDays.add(day);
     });
   };
   add(state.runFeels,"Run",index=>index*2+1);
   add(state.workoutFeels,"Workout",index=>index*2+1);
   add(state.offDayFeels,"Off Day",index=>[2,4,6,7][index]||0);
-  const markOffDays=bucket=>Object.entries(bucket||{}).forEach(([key,value])=>{
-    if(!value) return;
-    const match=key.match(/^(\d+)-(\d+)$/);
-    if(!match) return;
-    const week=Number(match[1]),index=Number(match[2]),dayInWeek=[2,4,6,7][index];
-    if(week>=1&&week<=8&&dayInWeek) dataDays.add((week-1)*7+dayInWeek);
-  });
-  markOffDays(state.offDayDone);
-  markOffDays(state.offDayNotes);
 
   const number=value=>value===""||value===null||value===undefined?null:Number(value);
   const setKeys=Object.keys(state.sets||{});
   const metrics=[];
   RUN_PROTOCOLS.forEach((runs,weekIndex)=>runs.forEach((protocol,index)=>{
-    const week=weekIndex+1,key=`${week}-${index}`,day=(week-1)*7+index*2+1;
+    const week=weekIndex+1,key=`${week}-${index}`;
     const saved=state.runMetrics&&state.runMetrics[key];
     const rawDistance=number(saved&&saved.distance);
     const distance=Number.isFinite(rawDistance)&&rawDistance>=0?rawDistance:null;
@@ -175,16 +157,15 @@ function collectData(){
       !!(state.workoutFeels&&state.workoutFeels[key])||!!(state.workoutNotes&&state.workoutNotes[key])||
       setKeys.some(setKey=>setKey.startsWith(key+"|")||setKey.startsWith(key+"-"));
     if(!active) return;
-    dataDays.add(day);
-    metrics.push({week,day,distance,sandalMinutes:protocolMinutes(protocol[0]),brooksMinutes:protocolMinutes(protocol[1])});
+    metrics.push({week,distance,sandalMinutes:protocolMinutes(protocol[0]),brooksMinutes:protocolMinutes(protocol[1])});
   }));
-  return {feelings,metrics,lastDataDay:Math.max(0,...dataDays)};
+  return {feelings,metrics};
 }
 
-function aggregateFeelings(entries,mode){
+function aggregateFeelings(entries){
   const groups=new Map();
   entries.forEach(entry=>{
-    const key=mode==="daily"?entry.day:entry.week;
+    const key=entry.week;
     if(!groups.has(key)) groups.set(key,[]);
     groups.get(key).push(entry);
   });
@@ -196,12 +177,12 @@ function aggregateFeelings(entries,mode){
   }));
 }
 
-function aggregateVolume(entries,mode,metric){
+function aggregateVolume(entries,metric){
   const groups=new Map();
   entries.forEach(entry=>{
     const value=entry[metric];
     if(value===null) return;
-    const period=mode==="daily"?entry.day:entry.week;
+    const period=entry.week;
     groups.set(period,(groups.get(period)||0)+value);
   });
   return [...groups.entries()].sort((a,b)=>a[0]-b[0]).map(([period,value])=>({period,value}));
@@ -238,29 +219,24 @@ const feelingColor=value=>{
   return `rgb(${rgb.join(",")})`;
 };
 
-function dailyTicks(max){
-  return Array.from({length:max},(_,index)=>index+1);
-}
-
 function render(){
-  const {feelings,metrics,lastDataDay}=collectData();
-  const feelingPoints=aggregateFeelings(feelings,view);
-  const daily=view==="daily";
-  const sandalPoints=volumeMode==="time"?aggregateVolume(metrics,view,"sandalMinutes"):[];
-  const brooksPoints=volumeMode==="time"?aggregateVolume(metrics,view,"brooksMinutes"):[];
-  const distancePoints=volumeMode==="distance"?aggregateVolume(metrics,view,"distance"):[];
+  const {feelings,metrics}=collectData();
+  const feelingPoints=aggregateFeelings(feelings);
+  const sandalPoints=volumeMode==="time"?aggregateVolume(metrics,"sandalMinutes"):[];
+  const brooksPoints=volumeMode==="time"?aggregateVolume(metrics,"brooksMinutes"):[];
+  const distancePoints=volumeMode==="distance"?aggregateVolume(metrics,"distance"):[];
   const timeBars=volumeMode==="time"?stackTime(sandalPoints,brooksPoints):[];
   const volumeValues=volumeMode==="time"?timeBars.map(point=>point.total):distancePoints.map(point=>point.value);
-  const domainMax=daily?(lastDataDay?lastDataDay+2:7):8;
-  const width=daily?Math.max(360,50+44+(domainMax-1)*16):360;
+  const domainMax=RUN_PROTOCOLS.length;
+  const width=360;
   const height=280,left=50,right=44,top=18,bottom=43;
   const plotWidth=width-left-right,plotHeight=height-top-bottom;
   const x=period=>left+((period-1)/(domainMax-1))*plotWidth;
   const yFeeling=value=>top+((value-1)/2)*plotHeight;
   const volumeMax=volumeCeiling(volumeValues);
   const yVolume=value=>top+plotHeight-(value/volumeMax)*plotHeight;
-  const xTicks=daily?dailyTicks(domainMax):[1,2,3,4,5,6,7,8];
-  const barWidth=daily?Math.max(3,Math.min(10,plotWidth/Math.max(domainMax-1,1)*.7)):18;
+  const xTicks=Array.from({length:domainMax},(_,i)=>i+1);
+  const barWidth=18;
 
   const horizontal=[1,2,3].map(value=>{
     const label=value===3?"Rough":value===2?"OK":"Smooth";
@@ -271,9 +247,9 @@ function render(){
   const volumeAxis=[volumeMax,volumeMax*.75,volumeMax*.5,volumeMax*.25,0].map(value=>`<text class="axisText" x="${width-right+7}" y="${yVolume(value)+3}" text-anchor="start">${volumeLabel(value)}</text>`).join("");
 
   const vertical=xTicks.map(period=>`<line class="weekGrid" x1="${x(period)}" y1="${top}" x2="${x(period)}" y2="${height-bottom}"></line>
-    <text class="axisText" x="${x(period)}" y="${height-bottom+18}" text-anchor="middle">${daily?period:"W"+period}</text>`).join("");
+    <text class="axisText" x="${x(period)}" y="${height-bottom+18}" text-anchor="middle">W${period}</text>`).join("");
 
-  const periodName=period=>daily?`Day ${period} (Week ${Math.ceil(period/7)}, day ${((period-1)%7)+1})`:`Week ${period}`;
+  const periodName=period=>`Week ${period}`;
   const feelingSeries=(()=>{
     const coordinates=feelingPoints.map(point=>`${x(point.period)},${yFeeling(point.value)}`).join(" ");
     const line=feelingPoints.length>1?`<polyline class="seriesLine" stroke="var(--feeling)" points="${coordinates}"></polyline>`:"";
@@ -300,9 +276,9 @@ function render(){
   const volumes=volumeMode==="time"?timeBarSeries:distanceBarSeries;
 
   const empty=feelingPoints.length||volumeValues.length?"":`<text class="empty" x="${left+plotWidth/2}" y="${top+plotHeight/2}" text-anchor="middle">No feeling or volume entries yet</text>`;
-  const axisTitle=daily?"PROGRAM DAY":"PROGRAM WEEK";
+  const axisTitle="PROGRAM WEEK";
   const volumeUnit=volumeMode==="time"?"MIN":"MI";
-  const aria=`${daily?"Daily":"Weekly"} feeling and running ${volumeMode} chart`;
+  const aria=`Weekly feeling and running ${volumeMode} chart`;
 
   document.getElementById("chart").innerHTML=`<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="${aria}">
     ${horizontal}${vertical}${volumeAxis}${volumes}${feelingSeries}${empty}
@@ -311,16 +287,10 @@ function render(){
   </svg>`;
 
   const volumeName=volumeMode==="time"?"TIME":"DISTANCE";
-  document.getElementById("chartTitle").textContent=`${daily?"DAILY":"WEEKLY"} FEELING + ${volumeName}`;
+  document.getElementById("chartTitle").textContent=`WEEKLY FEELING + ${volumeName}`;
   document.getElementById("legend").innerHTML=`<span class="legendItem"><i class="legendSwatch" style="background:linear-gradient(90deg,var(--smooth),var(--ok),var(--rough))"></i>Feeling</span>`+(volumeMode==="time"?`<span class="legendItem"><i class="legendSwatch" style="background:var(--sandalTime)"></i>Sandal time</span><span class="legendItem"><i class="legendSwatch" style="background:var(--brooks)"></i>Brooks time</span>`:`<span class="legendItem"><i class="legendSwatch" style="background:var(--done)"></i>Distance</span>`);
   document.getElementById("entryCount").textContent=feelings.length;
   document.getElementById("periodCount").textContent=feelingPoints.length;
-  document.getElementById("periodLabel").textContent=daily?"DAYS LOGGED":"WEEKS LOGGED";
-  document.querySelectorAll("[data-view]").forEach(button=>{
-    const active=button.dataset.view===view;
-    button.classList.toggle("on",active);
-    button.setAttribute("aria-pressed",String(active));
-  });
   document.querySelectorAll("[data-volume]").forEach(button=>{
     const active=button.dataset.volume===volumeMode;
     button.classList.toggle("on",active);
@@ -329,10 +299,9 @@ function render(){
 }
 
 document.addEventListener("click",event=>{
-  const button=event.target.closest("[data-view],[data-volume]");
+  const button=event.target.closest("[data-volume]");
   if(!button) return;
-  if(button.dataset.view) view=button.dataset.view;
-  if(button.dataset.volume) volumeMode=button.dataset.volume;
+  volumeMode=button.dataset.volume;
   render();
 });
 window.addEventListener("pageshow",render);
